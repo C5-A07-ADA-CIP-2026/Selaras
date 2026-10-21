@@ -6,10 +6,8 @@
 import SwiftUI
 
 struct ResepView: View {
-    let viewModel = ResepViewModel()
-
     var body: some View {
-        Text(viewModel.message)
+        Text("Halaman Resep")
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle("Resep")
             .toolbar {
