@@ -32,13 +32,14 @@ An iOS app built by a three-person team. Pages: **Resep** (recipes, the home tab
 
 - Run `brew bundle` once to install SwiftLint and SwiftFormat.
 - Use XcodeBuildMCP for builds, tests, and simulator runs.
-- Invoke the `hig-compliance` skill when writing or modifying user-facing UI.
+- Invoke the `hig-compliance` skill when writing or modifying user-facing UI. It includes the accessibility rules: Text Styles for Dynamic Type (never static font sizes) and color contrast.
 - Local Claude hooks run SwiftFormat and SwiftLint autofix on changed Swift files, report warnings, and block errors.
 
 ## Completion gates
 
 For all changes:
 
+- The build succeeds (`build_sim` with XcodeBuildMCP, or `xcodebuild build`) with no errors.
 - `swiftformat --lint --swift-version 6.0 --language-mode 6 .` passes.
 - `swiftlint lint --strict` passes.
 - Relevant tests pass after each change; the full test suite passes before completion.
@@ -48,3 +49,5 @@ For UI changes:
 - Build and run on the iPhone 17 simulator with XcodeBuildMCP.
 - Capture and inspect a screenshot and the `describe_ui` element tree.
 - Tap and type through the key flow.
+- Text uses Text Styles and stays readable at the largest accessibility text size (preview at `.dynamicTypeSize(.accessibility5)`).
+- Text and icon colors meet contrast minimums (4.5:1, or 3:1 for large/bold text) in Light, Dark and Increase Contrast.
