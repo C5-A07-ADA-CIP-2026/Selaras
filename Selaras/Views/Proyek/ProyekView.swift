@@ -1,3 +1,9 @@
+//
+//  ProyekView.swift
+//  Selaras
+//
+//  Created by Hana Azizah Nurhadi on 21/10/26.
+//
 
 import SwiftUI
 
@@ -40,49 +46,15 @@ struct ProyekView: View {
     }
 }
 
-private struct EmptyDeviceView: View {
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "sensor.radiowaves.left.and.right")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .accessibilityHidden(true)
-
-            Text("Belum ada perangkat")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            Text("Tambahkan perangkat untuk memulai")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity)
-    }
-}
-
-private struct AddDeviceSheetView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "sensor.radiowaves.left.and.right")
-                .font(.largeTitle)
-                .accessibilityHidden(true)
-
-            Text("Tambah Perangkat")
-                .font(.title2.weight(.semibold))
-
-            Text("Pilih perangkat yang ingin ditambahkan ke proyek.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
 #Preview {
     NavigationStack {
         ProyekView()
     }
+}
+
+#Preview("Accessibility size") {
+    NavigationStack {
+        ProyekView()
+    }
+    .dynamicTypeSize(.accessibility5)
 }
