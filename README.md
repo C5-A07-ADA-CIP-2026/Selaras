@@ -51,14 +51,19 @@ Arsitektur MVVM, test-first dengan Swift Testing. Komponen yang dipakai bersama 
 
 ## Kualitas kode
 
-Sebelum PR, dua perintah ini harus lolos:
+Sebelum PR, **build harus succeed** dan dua perintah ini harus lolos:
 
 ```bash
 swiftformat --lint --swift-version 6.0 --language-mode 6 .
 swiftlint lint --strict
 ```
 
-Keduanya juga dijalankan Xcode Cloud pada setiap PR lewat `ci_scripts/ci_post_clone.sh`.
+Lint dan format juga dijalankan Xcode Cloud pada setiap PR lewat `ci_scripts/ci_post_clone.sh`. Build dan test dijalankan oleh action Test di workflow PR checks.
+
+Aturan UI (lengkap di `.agents/skills/hig-compliance/SKILL.md`):
+
+- **Dynamic Type**: pakai Text Style (`.body`, `.headline`, dst.) sejak awal, bukan ukuran font statis seperti `.font(.system(size: 17))`. Cek preview di `.dynamicTypeSize(.accessibility5)`.
+- **Color contrast**: minimal 4.5:1 untuk teks kecil, 3:1 untuk teks besar/bold, di Light, Dark, dan Increase Contrast.
 
 ## CI dan TestFlight (Xcode Cloud)
 
