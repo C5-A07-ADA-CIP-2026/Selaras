@@ -1,0 +1,17 @@
+disabled_rules:
+  - todo
+  # swiftformat (the project's autofixer) mandates trailing commas in multiline
+  # literals, while swiftlint's `trailing_comma` forbids them — the two conflict.
+  # Trailing commas are the effective repo convention,
+  # so disable swiftlint's contradicting rule to let both gates pass together.
+  - trailing_comma
+
+# Gitignored build output (see .gitignore). Not excluding these means the
+# --strict gate only passes by accident, on a machine that hasn't built yet —
+# any locally-generated file under here (e.g. GeneratedAssetSymbols.swift)
+# would otherwise fail lint on its own generated content.
+excluded:
+  - .build
+  - .derivedData
+  - DerivedData
+  - build
