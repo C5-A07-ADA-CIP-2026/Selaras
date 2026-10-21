@@ -12,15 +12,25 @@ struct AddDeviceSheetView: View {
     @StateObject private var viewModel: AddDeviceViewModel
     private let onConnected: () -> Void
 
+    private static var defaultService: any DeviceConnectionService {
+        #if targetEnvironment(simulator)
+            SimulatedDeviceConnectionService()
+        #else
+            BLEDeviceConnectionService.shared
+        #endif
+    }
+
     init(
         initialState: DeviceConnectionState = .searching,
-        service: any DeviceConnectionService = SimulatedDeviceConnectionService(),
+        service: (any DeviceConnectionService)? = nil,
         onConnected: @escaping () -> Void = {}
     ) {
+        let resolvedService = service ?? Self.defaultService
+
         _viewModel = StateObject(
             wrappedValue: AddDeviceViewModel(
                 initialState: initialState,
-                service: service
+                service: resolvedService
             )
         )
         self.onConnected = onConnected
@@ -34,7 +44,7 @@ struct AddDeviceSheetView: View {
                 VStack {
                     Text(statusText)
                         .font(.subheadline.weight(.semibold))
-                    Text("ESP 32 - A")
+                    Text("ESP 32")
                         .font(.largeTitle.weight(.bold))
                 }
 

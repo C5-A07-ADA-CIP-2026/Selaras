@@ -31,11 +31,15 @@ struct SimulatedDeviceConnectionService: DeviceConnectionService {
     }
 
     func discoverDevice() async throws -> Bool {
+        print("[Simulator] 🔍 Mensimulasikan pencarian perangkat ESP32...")
         try await Task.sleep(for: discoveryDelay)
+        print("[Simulator] ✨ Perangkat simulasi ESP32 ditemukan.")
         return true
     }
 
     func connectToDevice() async throws {
+        print("[Simulator] ⏳ Mensimulasikan koneksi ke ESP32...")
         try await Task.sleep(for: connectionDelay)
+        print("[Simulator] ✅ Perangkat simulasi ESP32 terhubung.")
     }
 }
