@@ -9,13 +9,20 @@ import SwiftUI
 
 struct AddDeviceSheetView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var isDeviceFound: Bool
-    @State private var isConnecting = false
-    @State private var isConnected = false
+    @StateObject private var viewModel: AddDeviceViewModel
     private let onConnected: () -> Void
 
-    init(isDeviceFound: Bool = false, onConnected: @escaping () -> Void = {}) {
-        _isDeviceFound = State(initialValue: isDeviceFound)
+    init(
+        initialState: DeviceConnectionState = .searching,
+        service: any DeviceConnectionService = SimulatedDeviceConnectionService(),
+        onConnected: @escaping () -> Void = {}
+    ) {
+        _viewModel = StateObject(
+            wrappedValue: AddDeviceViewModel(
+                initialState: initialState,
+                service: service
+            )
+        )
         self.onConnected = onConnected
     }
 
@@ -31,12 +38,17 @@ struct AddDeviceSheetView: View {
                         .font(.largeTitle.weight(.bold))
                 }
 
-                if isDeviceFound {
+                if viewModel.isDeviceFound {
                     Image("ESP32C3")
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: 180)
                         .accessibilityLabel("Perangkat ESP32-C3")
+                } else if viewModel.state == .failed {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Perangkat tidak ditemukan")
                 } else {
                     ProgressView()
                         .controlSize(.large)
@@ -46,50 +58,30 @@ struct AddDeviceSheetView: View {
                 Spacer()
 
                 Button {
-                    if isConnected {
+                    if viewModel.state == .connected {
                         onConnected()
                         dismiss()
-                        return
-                    }
-
-                    isConnecting = true
-
-                    Task {
-                        // MARK: Placeholder connection delay
-
-                        do {
-                            try await Task.sleep(for: .seconds(2))
-                            isConnecting = false
-                            isConnected = true
-                        } catch is CancellationError {
-                            return
-                        } catch {
-                            return
+                    } else if viewModel.state == .failed {
+                        Task {
+                            await viewModel.discoverDevice()
+                        }
+                    } else {
+                        Task {
+                            await viewModel.connectDevice()
                         }
                     }
                 } label: {
-                    Text(isConnected ? "Selesai" : "Sambungkan")
+                    Text(buttonTitle)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(!isDeviceFound || isConnecting)
+                .disabled(viewModel.isConnecting || (!viewModel.isDeviceFound && viewModel.state != .failed))
             }
             .padding(24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .task {
-                guard !isDeviceFound else { return }
-
-                // MARK: Placeholder delay
-
-                do {
-                    try await Task.sleep(for: .seconds(2))
-                    isDeviceFound = true
-                } catch is CancellationError {
-                    return
-                } catch {
-                    return
-                }
+                await viewModel.discoverDevice()
             }
             .navigationTitle("Sambungkan Perangkat")
             .navigationBarTitleDisplayMode(.inline)
@@ -107,14 +99,28 @@ struct AddDeviceSheetView: View {
     }
 
     private var statusText: String {
-        if isConnected {
-            return "Perangkat telah tersambung"
+        switch viewModel.state {
+        case .connected:
+            "Perangkat telah tersambung"
+        case .connecting:
+            "Menyambungkan perangkat…"
+        case .failed:
+            "Perangkat tidak ditemukan"
+        case .found:
+            "Perangkat ditemukan."
+        case .searching:
+            "Mencari perangkat..."
         }
+    }
 
-        if isConnecting {
-            return "Menyambungkan perangkat…"
+    private var buttonTitle: String {
+        switch viewModel.state {
+        case .connected:
+            "Selesai"
+        case .failed:
+            "Coba Lagi"
+        default:
+            "Sambungkan"
         }
-
-        return isDeviceFound ? "Perangkat ditemukan." : "Mencari perangkat..."
     }
 }
