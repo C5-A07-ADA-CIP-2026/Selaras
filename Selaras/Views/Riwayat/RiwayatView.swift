@@ -6,10 +6,8 @@
 import SwiftUI
 
 struct RiwayatView: View {
-    let viewModel = RiwayatViewModel()
-
     var body: some View {
-        Text(viewModel.message)
+        Text("Halaman Riwayat")
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle("Riwayat")
             .navigationBarTitleDisplayMode(.inline)

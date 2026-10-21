@@ -32,14 +32,18 @@ Selaras/
 ├── SelarasApp.swift
 ├── ContentView.swift        TabView (Resep, Proyek)
 ├── AppTab.swift
-└── Features/
-    ├── Resep/               ResepView, ResepViewModel, ResepModel
-    ├── Proyek/              ProyekView, ProyekViewModel, ProyekModel
-    └── Riwayat/             RiwayatView, RiwayatViewModel, RiwayatModel
-SelarasTests/                mirror dari struktur di atas
+├── Views/
+│   ├── Resep/ResepView.swift        placeholder
+│   ├── Proyek/ProyekView.swift      placeholder
+│   └── Riwayat/RiwayatView.swift    placeholder
+├── ViewModels/                      kosong, diisi per fitur: <Fitur>ViewModel.swift
+└── Models/                          kosong, diisi per fitur: <Fitur>Model.swift
+SelarasTests/
+├── ViewModels/                      tes ViewModel
+└── Models/                          tes Model
 ```
 
-Arsitektur MVVM, test-first dengan Swift Testing. Komponen yang dipakai bersama taruh di `Selaras/Shared/`. Detail aturan ada di [AGENTS.md](AGENTS.md).
+Arsitektur MVVM satu folder per layer, test-first dengan Swift Testing: tulis tes dulu, lalu ViewModel dan Model-nya. Hapus file `*Placeholder.swift` begitu folder sudah ada isinya. Komponen yang dipakai bersama taruh di `Selaras/Shared/`. Detail aturan ada di [AGENTS.md](AGENTS.md).
 
 ## Branch dan PR
 
