@@ -9,10 +9,17 @@ import SwiftUI
 
 struct ProyekView: View {
     @State private var isShowingAddDeviceSheet = false
+    @State private var isDeviceConnected = false
 
     var body: some View {
         VStack(spacing: 16) {
-            EmptyDeviceView()
+            if isDeviceConnected {
+                Text("Perangkat")
+                    .font(.title2.weight(.semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                EmptyDeviceView()
+            }
 
             Button {
                 isShowingAddDeviceSheet = true
@@ -39,9 +46,11 @@ struct ProyekView: View {
             }
         }
         .sheet(isPresented: $isShowingAddDeviceSheet) {
-            AddDeviceSheetView()
-                .presentationDetents([.medium])
-                .presentationBackground(.background)
+            AddDeviceSheetView {
+                isDeviceConnected = true
+            }
+            .presentationDetents([.medium])
+            .presentationBackground(.background)
         }
     }
 }

@@ -12,9 +12,11 @@ struct AddDeviceSheetView: View {
     @State private var isDeviceFound: Bool
     @State private var isConnecting = false
     @State private var isConnected = false
+    private let onConnected: () -> Void
 
-    init(isDeviceFound: Bool = false) {
+    init(isDeviceFound: Bool = false, onConnected: @escaping () -> Void = {}) {
         _isDeviceFound = State(initialValue: isDeviceFound)
+        self.onConnected = onConnected
     }
 
     var body: some View {
@@ -45,6 +47,7 @@ struct AddDeviceSheetView: View {
 
                 Button {
                     if isConnected {
+                        onConnected()
                         dismiss()
                         return
                     }
@@ -65,7 +68,7 @@ struct AddDeviceSheetView: View {
                         }
                     }
                 } label: {
-                    Label(isConnected ? "Selesai" : "Sambungkan", systemImage: "plus")
+                    Text(isConnected ? "Selesai" : "Sambungkan")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
