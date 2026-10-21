@@ -10,6 +10,8 @@ import SwiftUI
 struct AddDeviceSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isDeviceFound: Bool
+    @State private var isConnecting = false
+    @State private var isConnected = false
 
     init(isDeviceFound: Bool = false) {
         _isDeviceFound = State(initialValue: isDeviceFound)
@@ -21,7 +23,7 @@ struct AddDeviceSheetView: View {
                 Spacer()
 
                 VStack {
-                    Text(isDeviceFound ? "Perangkat ditemukan." : "Mencari perangkat...")
+                    Text(statusText)
                         .font(.subheadline.weight(.semibold))
                     Text("ESP 32 - A")
                         .font(.largeTitle.weight(.bold))
@@ -41,13 +43,34 @@ struct AddDeviceSheetView: View {
 
                 Spacer()
 
-                Button {} label: {
-                    Label("Sambungkan", systemImage: "plus")
+                Button {
+                    if isConnected {
+                        dismiss()
+                        return
+                    }
+
+                    isConnecting = true
+
+                    Task {
+                        // MARK: Placeholder connection delay
+
+                        do {
+                            try await Task.sleep(for: .seconds(2))
+                            isConnecting = false
+                            isConnected = true
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            return
+                        }
+                    }
+                } label: {
+                    Label(isConnected ? "Selesai" : "Sambungkan", systemImage: "plus")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(!isDeviceFound)
+                .disabled(!isDeviceFound || isConnecting)
             }
             .padding(24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -78,5 +101,17 @@ struct AddDeviceSheetView: View {
                 }
             }
         }
+    }
+
+    private var statusText: String {
+        if isConnected {
+            return "Perangkat telah tersambung"
+        }
+
+        if isConnecting {
+            return "Menyambungkan perangkat…"
+        }
+
+        return isDeviceFound ? "Perangkat ditemukan." : "Mencari perangkat..."
     }
 }
