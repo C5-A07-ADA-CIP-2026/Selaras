@@ -6,10 +6,8 @@
 import SwiftUI
 
 struct ProyekView: View {
-    let viewModel = ProyekViewModel()
-
     var body: some View {
-        Text(viewModel.message)
+        Text("Halaman Proyek")
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle("Proyek")
     }

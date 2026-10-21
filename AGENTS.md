@@ -12,9 +12,9 @@ An iOS app built by a three-person team. Pages: **Resep** (recipes, the home tab
 
 ## Architecture
 
-- Use MVVM. Each feature lives in `Selaras/Features/<Feature>/` as `<Feature>View`, `<Feature>ViewModel` and `<Feature>Model`.
-- Tests mirror the source tree under `SelarasTests/Features/<Feature>/`.
-- Shared models, components and extensions go in `Selaras/Shared/`. Keep feature code inside its own folder to avoid merge conflicts.
+- Use MVVM with one folder per layer: `Selaras/Views/<Feature>/<Feature>View.swift`, `Selaras/ViewModels/<Feature>ViewModel.swift` and `Selaras/Models/<Feature>Model.swift`. `Views/` has placeholder views for Resep, Proyek and Riwayat; `ViewModels/` and `Models/` start empty (only a placeholder `.swift` file) and are filled test-first by each feature's owner.
+- Tests mirror the layers: `SelarasTests/ViewModels/` and `SelarasTests/Models/`.
+- Shared components and extensions go in `Selaras/Shared/`. Name files with the feature prefix and keep each feature's views in its own `Views/<Feature>/` folder to avoid merge conflicts.
 - Use test-driven development with Swift Testing: write tests before implementation and cover changed behavior.
 - Ask before adding dependencies; prefer first-party Apple frameworks.
 
