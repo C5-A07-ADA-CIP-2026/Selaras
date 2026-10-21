@@ -1,0 +1,50 @@
+# Selaras
+
+An iOS app built by a three-person team. Pages: **Resep** (recipes, the home tab), **Proyek** (projects, second tab), and **Riwayat** (history, opened from a button at the top right of Resep).
+
+## Team
+
+| Area | Owner | Branch |
+|------|-------|--------|
+| Resep | Dina | `feat/resep` |
+| Proyek | Hana | `feat/proyek` |
+| Riwayat, and tests for Proyek | Fany | `feat/riwayat` |
+
+## Architecture
+
+- Use MVVM. Each feature lives in `Selaras/Features/<Feature>/` as `<Feature>View`, `<Feature>ViewModel` and `<Feature>Model`.
+- Tests mirror the source tree under `SelarasTests/Features/<Feature>/`.
+- Shared models, components and extensions go in `Selaras/Shared/`. Keep feature code inside its own folder to avoid merge conflicts.
+- Use test-driven development with Swift Testing: write tests before implementation and cover changed behavior.
+- Ask before adding dependencies; prefer first-party Apple frameworks.
+
+## Git workflow
+
+- Branches: `main` (default, released to TestFlight), `staging`, `dev` (integration). Feature work happens on `feat/resep`, `feat/proyek` and `feat/riwayat`, which branch from and merge back into `dev` through pull requests.
+- Jira project: <https://mariabelenn2405.atlassian.net/browse/KAN>. Tickets look like `KAN-12`. If you need a ticket ID, ask the user if none was provided; if still not given, omit it.
+- Name extra short-lived branches `<type>/<jira-ticket-id>-short-descriptive-name`.
+- Use Conventional Commits: `type(scope): subject` (for example, `feat(resep): add recipe list`).
+- Title PRs `<type>(JIRA-TICKET-ID): Short Descriptive Name`.
+- Explain what changed and why in PR descriptions; include screenshots for UI changes.
+- Do not add Claude (or any AI) as a co-author on commits or PRs.
+
+## Tooling
+
+- Run `brew bundle` once to install SwiftLint and SwiftFormat.
+- Use XcodeBuildMCP for builds, tests, and simulator runs.
+- Invoke the `hig-compliance` skill when writing or modifying user-facing UI.
+- Local Claude hooks run SwiftFormat and SwiftLint autofix on changed Swift files, report warnings, and block errors.
+
+## Completion gates
+
+For all changes:
+
+- `swiftformat --lint --swift-version 6.0 --language-mode 6 .` passes.
+- `swiftlint lint --strict` passes.
+- Relevant tests pass after each change; the full test suite passes before completion.
+
+For UI changes:
+
+- Build and run on the iPhone 17 simulator with XcodeBuildMCP.
+- Capture and inspect a screenshot and the `describe_ui` element tree.
+- Tap and type through the key flow.
