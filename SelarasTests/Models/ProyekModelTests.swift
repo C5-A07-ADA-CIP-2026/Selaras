@@ -34,4 +34,16 @@ struct ProyekModelTests {
             "Batas pH",
         ])
     }
+
+    @Test("Calculates current concentration relative to initial sensor reading")
+    func calculatesCurrentConcentrationRelativeToInitialSensorReading() {
+        let measurements = ProyekColorMeasurements.selectedColor
+            .withCurrentConcentration(
+                ColorMeasurement(visibleAverage: 735, clear: 1200, nir: 200),
+                relativeTo: 1000
+            )
+
+        #expect(measurements.initial.first?.value == "100%")
+        #expect(measurements.current.first?.value == "73.5%")
+    }
 }

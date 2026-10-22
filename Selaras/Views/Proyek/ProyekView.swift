@@ -14,7 +14,7 @@ struct ProyekView: View {
     var body: some View {
         VStack(spacing: 16) {
             if viewModel.isDeviceConnected {
-                ConnectedDeviceView()
+                ConnectedDeviceView(measurements: viewModel.initialColorMeasurements)
             } else {
                 EmptyDeviceView()
 
@@ -28,7 +28,9 @@ struct ProyekView: View {
                 .controlSize(.large)
             }
         }
-        .padding(24)
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
         .navigationTitle("Proyek")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -46,10 +48,35 @@ struct ProyekView: View {
         .sheet(isPresented: $isShowingAddDeviceSheet) {
             AddDeviceSheetView {
                 viewModel.markDeviceAsConnected()
+                Task {
+                    await viewModel.readInitialColorMeasurement()
+                }
             }
             .presentationDetents([.medium])
             .presentationBackground(.background)
         }
+        .alert(
+            "Data warna tidak tersedia",
+            isPresented: errorAlertIsPresented,
+            presenting: viewModel.colorMeasurementError
+        ) { _ in
+            Button("Tutup") {
+                viewModel.clearColorMeasurementError()
+            }
+        } message: { error in
+            Text(error)
+        }
+    }
+
+    private var errorAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.colorMeasurementError != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.clearColorMeasurementError()
+                }
+            }
+        )
     }
 }
 

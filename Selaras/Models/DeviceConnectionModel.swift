@@ -5,6 +5,43 @@
 
 import Foundation
 
+struct ColorMeasurement: Equatable, Decodable, Sendable {
+    let visibleAverage: Double
+    let clear: UInt16
+    let nir: UInt16
+
+    init(visibleAverage: Double, clear: UInt16, nir: UInt16) {
+        self.visibleAverage = visibleAverage
+        self.clear = clear
+        self.nir = nir
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        visibleAverage = try container.decodeIfPresent(Double.self, forKey: .visibleAverage)
+            ?? container.decode(Double.self, forKey: .concentrationPercent)
+        clear = try container.decode(UInt16.self, forKey: .clear)
+        nir = try container.decode(UInt16.self, forKey: .nir)
+    }
+
+    func formattedConcentration(relativeTo baseline: Double) -> String {
+        guard baseline > 0 else { return "0.0%" }
+        let percentage = (visibleAverage / baseline) * 100
+        return String(
+            format: "%.1f%%",
+            locale: Locale(identifier: "en_US_POSIX"),
+            percentage
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case visibleAverage
+        case concentrationPercent
+        case clear
+        case nir
+    }
+}
+
 enum DeviceConnectionState: Equatable {
     case searching
     case found
@@ -16,6 +53,8 @@ enum DeviceConnectionState: Equatable {
 protocol DeviceConnectionService: Sendable {
     func discoverDevice() async throws -> Bool
     func connectToDevice() async throws
+    func readInitialColorMeasurement() async throws -> ColorMeasurement
+    func measurementUpdates() -> AsyncStream<ColorMeasurement>
 }
 
 struct SimulatedDeviceConnectionService: DeviceConnectionService {
@@ -41,5 +80,15 @@ struct SimulatedDeviceConnectionService: DeviceConnectionService {
         print("[Simulator] ⏳ Mensimulasikan koneksi ke ESP32...")
         try await Task.sleep(for: connectionDelay)
         print("[Simulator] ✅ Perangkat simulasi ESP32 terhubung.")
+    }
+
+    func readInitialColorMeasurement() async throws -> ColorMeasurement {
+        ColorMeasurement(visibleAverage: 1000, clear: 1000, nir: 100)
+    }
+
+    func measurementUpdates() -> AsyncStream<ColorMeasurement> {
+        AsyncStream { continuation in
+            continuation.yield(ColorMeasurement(visibleAverage: 1000, clear: 1000, nir: 100))
+        }
     }
 }

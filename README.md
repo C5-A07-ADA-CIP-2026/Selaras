@@ -69,6 +69,35 @@ Aturan UI (lengkap di `.agents/skills/hig-compliance/SKILL.md`):
 - **Dynamic Type**: pakai Text Style (`.body`, `.headline`, dst.) sejak awal, bukan ukuran font statis seperti `.font(.system(size: 17))`. Cek preview di `.dynamicTypeSize(.accessibility5)`.
 - **Color contrast**: minimal 4.5:1 untuk teks kecil, 3:1 untuk teks besar/bold, di Light, Dark, dan Increase Contrast.
 
+## ESP32 dan AS7341
+
+Sketch Arduino ada di [selaras_esp32_connectble/selaras_esp32_connectble.ino](selaras_esp32_connectble/selaras_esp32_connectble.ino).
+
+1. Pasang library **Adafruit AS7341** melalui Arduino Library Manager. Library ini akan memasang dependency I2C yang dibutuhkan.
+2. Untuk **ESP32C3 Dev Module** pada sketch ini, hubungkan:
+
+   ```text
+   AS7341 VCC → ESP32 3V3
+   AS7341 GND → ESP32 GND
+   AS7341 SDA → ESP32 GPIO6
+   AS7341 SCL → ESP32 GPIO7
+   ```
+
+   Pin tersebut diatur eksplisit melalui `Wire.begin(6, 7)`.
+3. Upload sketch ke ESP32. Sketch membaca delapan kanal visible AS7341 setiap 500 ms dan mengirim JSON melalui characteristic BLE yang sama dengan aplikasi:
+
+   ```json
+   {"visibleAverage":735.0,"clear":1200,"nir":200}
+   ```
+
+Saat perangkat tersambung, pembacaan pertama disimpan sebagai baseline dan ditampilkan sebagai **100%**. Setiap notification berikutnya menghitung kepekatan relatif dengan rumus:
+
+```text
+kepekatan sekarang = (visibleAverage sekarang / visibleAverage awal) × 100
+```
+
+Nilai **Kepekatan Warna Sekarang** diperbarui secara streaming melalui BLE notification, sehingga berubah mengikuti pembacaan AS7341. Jika pembacaan gagal, aplikasi menampilkan error dan tidak menganggap nilai sensor berhasil terbaca.
+
 ## CI dan TestFlight (Xcode Cloud)
 
 Script dan shared scheme sudah ada di repo. Workflow dibuat manual di Xcode (Product → Xcode Cloud):

@@ -57,6 +57,24 @@ struct ProyekColorMeasurements {
         ]
     )
 
+    func withCurrentConcentration(
+        _ measurement: ColorMeasurement,
+        relativeTo baseline: Double
+    ) -> ProyekColorMeasurements {
+        var updatedCurrent = current
+        guard let index = updatedCurrent.firstIndex(where: { $0.id == "current-color-concentration" }) else {
+            return self
+        }
+
+        updatedCurrent[index] = ProyekMeasurement(
+            id: updatedCurrent[index].id,
+            title: updatedCurrent[index].title,
+            value: measurement.formattedConcentration(relativeTo: baseline),
+            isCurrent: updatedCurrent[index].isCurrent
+        )
+        return ProyekColorMeasurements(initial: initial, current: updatedCurrent)
+    }
+
     var displayedMeasurements: [ProyekMeasurement] {
         guard current.count >= 2, initial.count >= 4 else {
             return initial

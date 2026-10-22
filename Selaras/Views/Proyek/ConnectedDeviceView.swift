@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ConnectedDeviceView: View {
+    let measurements: ProyekColorMeasurements
+
     @State private var fabricAmount = 0
     @State private var isColorSelected = false
     @State private var isDataScanned = false
@@ -16,9 +18,11 @@ struct ConnectedDeviceView: View {
     private let onSaveProject: () -> Void
 
     init(
+        measurements: ProyekColorMeasurements = .selectedColor,
         onScanData: @escaping () -> Void = {},
         onSaveProject: @escaping () -> Void = {}
     ) {
+        self.measurements = measurements
         self.onScanData = onScanData
         self.onSaveProject = onSaveProject
     }
@@ -42,7 +46,10 @@ struct ConnectedDeviceView: View {
                     .font(.title3.weight(.semibold))
 
                 if isColorSelected {
-                    SelectedColorView(isDataScanned: isDataScanned)
+                    SelectedColorView(
+                        measurements: measurements,
+                        isDataScanned: isDataScanned
+                    )
                 } else {
                     Button {
                         isColorSelected = true
@@ -93,6 +100,7 @@ struct ConnectedDeviceView: View {
 }
 
 private struct SelectedColorView: View {
+    let measurements: ProyekColorMeasurements
     let isDataScanned: Bool
 
     var body: some View {
@@ -118,10 +126,10 @@ private struct SelectedColorView: View {
 
     private var displayedMeasurements: [ProyekMeasurement] {
         if isDataScanned {
-            return ProyekColorMeasurements.selectedColor.displayedMeasurements
+            return measurements.displayedMeasurements
         }
 
-        return ProyekColorMeasurements.selectedColor.initial
+        return measurements.initial
     }
 }
 
@@ -137,7 +145,7 @@ private struct MeasurementRow: View {
             Text(measurement.value)
                 .monospacedDigit()
         }
-        .fontWeight(measurement.isCurrent ? .bold : .regular)
+        .fontWeight(measurement.isCurrent ? .semibold : .regular)
     }
 }
 

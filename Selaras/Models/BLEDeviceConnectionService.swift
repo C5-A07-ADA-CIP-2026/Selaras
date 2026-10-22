@@ -14,9 +14,11 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
 
     /// Service UUID khusus untuk perangkat Selaras
     static let serviceUUID = CBUUID(string: "4FAFC201-1FB5-459E-8FCC-C5C9C331914B")
+    static let measurementCharacteristicUUID = CBUUID(string: "BEA57604-1C34-45B5-927A-94943E992383")
 
     private var centralManager: CBCentralManager?
     private var discoveredPeripheral: CBPeripheral?
+    private var measurementCharacteristic: CBCharacteristic?
 
     private let discoveryTimeout: TimeInterval
     private let connectionTimeout: TimeInterval
@@ -24,6 +26,9 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
     // Continuation untuk jembatan async/await ke callback delegate CoreBluetooth
     private var discoveryContinuation: CheckedContinuation<Bool, any Error>?
     private var connectionContinuation: CheckedContinuation<Void, any Error>?
+    private var characteristicContinuation: CheckedContinuation<Void, any Error>?
+    private var measurementContinuation: CheckedContinuation<ColorMeasurement, any Error>?
+    private var measurementStreamContinuation: AsyncStream<ColorMeasurement>.Continuation?
 
     init(
         discoveryTimeout: TimeInterval = 10,
@@ -108,6 +113,52 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
                 )
                 cont.resume(throwing: timeoutError)
             }
+        }
+    }
+
+    func readInitialColorMeasurement() async throws -> ColorMeasurement {
+        guard let peripheral = discoveredPeripheral, peripheral.state == .connected else {
+            throw NSError(
+                domain: "BLEService",
+                code: 409,
+                userInfo: [NSLocalizedDescriptionKey: "Perangkat belum terhubung"]
+            )
+        }
+
+        try await obtainMeasurementCharacteristic(from: peripheral)
+        guard let characteristic = measurementCharacteristic else {
+            throw NSError(
+                domain: "BLEService",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Characteristic sensor tidak ditemukan"]
+            )
+        }
+        return try await withCheckedThrowingContinuation { continuation in
+            measurementContinuation?.resume(throwing: CancellationError())
+            measurementContinuation = continuation
+            print("[BLE] 📥 Meminta pembacaan characteristic \(Self.measurementCharacteristicUUID.uuidString)...")
+            peripheral.readValue(for: characteristic)
+        }
+    }
+
+    func measurementUpdates() -> AsyncStream<ColorMeasurement> {
+        AsyncStream { continuation in
+            measurementStreamContinuation = continuation
+        }
+    }
+
+    private func obtainMeasurementCharacteristic(
+        from peripheral: CBPeripheral
+    ) async throws {
+        if let measurementCharacteristic {
+            _ = measurementCharacteristic
+            return
+        }
+
+        try await withCheckedThrowingContinuation { continuation in
+            characteristicContinuation?.resume(throwing: CancellationError())
+            characteristicContinuation = continuation
+            peripheral.discoverServices([Self.serviceUUID])
         }
     }
 
@@ -207,6 +258,7 @@ extension BLEDeviceConnectionService: CBCentralManagerDelegate {
         let name = peripheral.name ?? "ESP32"
         print("[BLE] 🔌 Perangkat '\(name)' terputus.")
         discoveredPeripheral = nil
+        measurementCharacteristic = nil
     }
 }
 
@@ -216,6 +268,8 @@ extension BLEDeviceConnectionService: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: (any Error)?) {
         if let error {
             print("[BLE] ❌ Gagal menemukan service: \(error.localizedDescription)")
+            characteristicContinuation?.resume(throwing: error)
+            characteristicContinuation = nil
             return
         }
         guard let services = peripheral.services else { return }
@@ -225,14 +279,82 @@ extension BLEDeviceConnectionService: CBPeripheralDelegate {
         }
     }
 
-    func peripheral(_: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: (any Error)?) {
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: (any Error)?) {
         if let error {
             print("[BLE] ❌ Gagal menemukan characteristic: \(error.localizedDescription)")
+            characteristicContinuation?.resume(throwing: error)
+            characteristicContinuation = nil
             return
         }
-        guard let characteristics = service.characteristics else { return }
+        guard let characteristics = service.characteristics else {
+            let error = NSError(
+                domain: "BLEService",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Characteristic sensor tidak ditemukan"]
+            )
+            characteristicContinuation?.resume(throwing: error)
+            characteristicContinuation = nil
+            return
+        }
         for characteristic in characteristics {
             print("[BLE] 🔑 Ditemukan characteristic: \(characteristic.uuid.uuidString)")
+            guard characteristic.uuid == Self.measurementCharacteristicUUID else { continue }
+            measurementCharacteristic = characteristic
+            peripheral.setNotifyValue(true, for: characteristic)
+            characteristicContinuation?.resume(returning: ())
+            characteristicContinuation = nil
         }
+        if measurementCharacteristic == nil {
+            let error = NSError(
+                domain: "BLEService",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Characteristic sensor tidak ditemukan"]
+            )
+            characteristicContinuation?.resume(throwing: error)
+            characteristicContinuation = nil
+        }
+    }
+
+    func peripheral(
+        _: CBPeripheral,
+        didUpdateValueFor characteristic: CBCharacteristic,
+        error: (any Error)?
+    ) {
+        guard characteristic.uuid == Self.measurementCharacteristicUUID else { return }
+
+        if let error {
+            measurementContinuation?.resume(throwing: error)
+            measurementContinuation = nil
+            return
+        }
+
+        guard let data = characteristic.value else {
+            let error = NSError(
+                domain: "BLEService",
+                code: 204,
+                userInfo: [NSLocalizedDescriptionKey: "ESP32 mengirim payload kosong"]
+            )
+            measurementContinuation?.resume(throwing: error)
+            measurementContinuation = nil
+            return
+        }
+
+        let rawPayload = String(data: data, encoding: .utf8) ?? "<bukan UTF-8>"
+        let hexPayload = data.map { String(format: "%02X", $0) }.joined(separator: " ")
+        print("[BLE] 📦 Payload diterima: \(rawPayload)")
+        print("[BLE] 🔢 Bytes payload: \(hexPayload)")
+
+        do {
+            let measurement = try JSONDecoder().decode(ColorMeasurement.self, from: data)
+            print(
+                "[BLE] 🎨 AS7341 visibleAverage=\(measurement.visibleAverage), " +
+                    "clear=\(measurement.clear), nir=\(measurement.nir)"
+            )
+            measurementStreamContinuation?.yield(measurement)
+            measurementContinuation?.resume(returning: measurement)
+        } catch {
+            measurementContinuation?.resume(throwing: error)
+        }
+        measurementContinuation = nil
     }
 }
