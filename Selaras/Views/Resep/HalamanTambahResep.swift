@@ -5,7 +5,6 @@
 //  Created by Dina on 21/10/26.
 //
 
-
 import SwiftUI
 
 struct HalamanTambahResep: View {
@@ -16,6 +15,7 @@ struct HalamanTambahResep: View {
     @State private var batasPH = 0.0
     
     @State private var warnaDipilih: Color? = nil
+    
     private var bindingWarna: Binding<Color> {
         Binding(
             get: { warnaDipilih ?? .blue },
@@ -23,13 +23,8 @@ struct HalamanTambahResep: View {
         )
     }
     
-    @State private var pewarna: [BahanInput] = [
-        BahanInput()
-    ]
-    
-    @State private var zatPembantu: [BahanInput] = [
-        BahanInput()
-    ]
+    @State private var pewarna: [BahanInput] = [BahanInput()]
+    @State private var zatPembantu: [BahanInput] = [BahanInput()]
     
     @Environment(\.dismiss) private var dismiss
     
@@ -76,6 +71,7 @@ struct HalamanTambahResep: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Warna")
                         .font(.system(.headline, weight: .bold))
+                    
                     ZStack {
                         if let warna = warnaDipilih {
                             RoundedRectangle(cornerRadius: 12)
@@ -96,6 +92,7 @@ struct HalamanTambahResep: View {
                                 .background(Color.accentColor, in: Capsule())
                                 .allowsHitTesting(false)
                         }
+                        
                         ColorPicker("", selection: bindingWarna, supportsOpacity: false)
                             .labelsHidden()
                             .scaleEffect(x: 20, y: 3)
@@ -111,11 +108,15 @@ struct HalamanTambahResep: View {
                             }
                             .buttonStyle(.plain)
                             .padding(8)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                            .frame(maxWidth: .infinity,
+                                   maxHeight: .infinity,
+                                   alignment: .topTrailing)
                         }
                     }
                     .frame(height: warnaDipilih != nil ? 80 : nil)
-                    .clipShape(RoundedRectangle(cornerRadius: warnaDipilih != nil ? 12 : 25))
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: warnaDipilih != nil ? 12 : 25))
                 }
                 
                 VStack(alignment: .leading, spacing: 20) {
@@ -124,6 +125,7 @@ struct HalamanTambahResep: View {
                     
                     Text("Kode Pewarna Naphtol")
                         .font(.system(.headline, weight: .bold))
+                    
                     ForEach($pewarna) { $bahan in
                         barisBahan(
                             kode: $bahan.kode,
@@ -145,12 +147,15 @@ struct HalamanTambahResep: View {
                     HStack {
                         Text("Air")
                             .font(.system(.headline, weight: .bold))
+                        
                         Spacer()
+                        
                         TextField("0", value: $ukuranAir, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.center)
                             .frame(width: 70)
+                        
                         Text("ml")
                             .font(.system(.headline))
                             .frame(width: 30, alignment: .leading)
@@ -158,6 +163,7 @@ struct HalamanTambahResep: View {
                     
                     Text("Zat Pembantu")
                         .font(.system(.headline, weight: .bold))
+                    
                     ForEach($zatPembantu) { $bahan in
                         barisBahan(
                             kode: $bahan.kode,
@@ -167,6 +173,7 @@ struct HalamanTambahResep: View {
                     
                     Button {
                         zatPembantu.append(BahanInput())
+                        
                     } label: {
                         Label("Tambah Zat Pembantu", systemImage: "plus")
                             .font(.system(.headline, weight: .bold))
@@ -184,7 +191,9 @@ struct HalamanTambahResep: View {
                     HStack {
                         Text("Kepekatan Warna")
                             .font(.system(.headline))
+                        
                         Spacer()
+                        
                         TextField("0", value: $kepekatan, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.decimalPad)
@@ -193,6 +202,7 @@ struct HalamanTambahResep: View {
                             .onChange(of: kepekatan) { _, baru in
                                 kepekatan = min(max(baru, 0), 100)
                             }
+                        
                         Text("%")
                             .font(.system(.headline))
                             .frame(width: 30, alignment: .leading)
@@ -201,7 +211,9 @@ struct HalamanTambahResep: View {
                     HStack {
                         Text("Batas pH")
                             .font(.system(.headline))
+                        
                         Spacer()
+                        
                         TextField("0", value: $batasPH, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.decimalPad)
@@ -210,6 +222,7 @@ struct HalamanTambahResep: View {
                             .onChange(of: batasPH) { _, baru in
                                 batasPH = min(max(baru, 0), 14)
                             }
+                        
                         Text("pH")
                             .font(.system(.headline))
                             .frame(width: 30, alignment: .leading)
@@ -237,6 +250,7 @@ struct HalamanTambahResep: View {
                 }
                 .accessibilityLabel("Batal")
             }
+            
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     // simpan nanti
@@ -271,7 +285,6 @@ private func barisBahan(
             .frame(width: 30)
     }
 }
-
 
 #Preview {
     NavigationStack {
