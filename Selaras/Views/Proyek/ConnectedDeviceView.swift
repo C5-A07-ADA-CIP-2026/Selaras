@@ -10,6 +10,18 @@ import SwiftUI
 struct ConnectedDeviceView: View {
     @State private var fabricAmount = 0
     @State private var isColorSelected = false
+    @State private var isDataScanned = false
+
+    private let onScanData: () -> Void
+    private let onSaveProject: () -> Void
+
+    init(
+        onScanData: @escaping () -> Void = {},
+        onSaveProject: @escaping () -> Void = {}
+    ) {
+        self.onScanData = onScanData
+        self.onSaveProject = onSaveProject
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -17,12 +29,9 @@ struct ConnectedDeviceView: View {
                 Text("Perangkat")
                     .font(.title3.weight(.semibold))
 
-                HStack {
-                    Text(Image(systemName: "wifi"))
-                    Text("ESP 32")
-                }
-                .fontWeight(.semibold)
-                .foregroundStyle(.blue)
+                Label("ESP 32", systemImage: "wifi")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.tint)
 
                 Divider()
                     .frame(maxWidth: .infinity)
@@ -33,48 +42,7 @@ struct ConnectedDeviceView: View {
                     .font(.title3.weight(.semibold))
 
                 if isColorSelected {
-                    // pilih resep
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Ungu")
-                            .italic()
-                            .font(.headline)
-
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(.indigo)
-                            .frame(maxWidth: .infinity, maxHeight: 60)
-                            .accessibilityLabel("Warna indigo")
-                    }
-
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Kepekatan Warna Awal")
-
-                            Spacer()
-
-                            Text("100%")
-                        }
-                        HStack {
-                            Text("Batas Kepekatan Warna")
-
-                            Spacer()
-
-                            Text("95%")
-                        }
-                        HStack {
-                            Text("pH Air Awal")
-
-                            Spacer()
-
-                            Text("12")
-                        }
-                        HStack {
-                            Text("Batas pH")
-
-                            Spacer()
-
-                            Text("10")
-                        }
-                    }
+                    SelectedColorView(isDataScanned: isDataScanned)
                 } else {
                     Button {
                         isColorSelected = true
@@ -106,10 +74,17 @@ struct ConnectedDeviceView: View {
         Spacer()
         if isColorSelected, fabricAmount > 0 {
             Button {
-                // TODO: Pindai data di ESP32.
+                if isDataScanned {
+                    onSaveProject()
+                } else {
+                    isDataScanned = true
+                    onScanData()
+                }
             } label: {
-                Text("Pindai Data")
-                    .frame(maxWidth: .infinity)
+                Text(
+                    isDataScanned ? "Simpan Proyek" : "Pindai Data"
+                )
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -117,6 +92,60 @@ struct ConnectedDeviceView: View {
     }
 }
 
+private struct SelectedColorView: View {
+    let isDataScanned: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Ungu")
+                    .italic()
+                    .font(.headline)
+
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(.indigo)
+                    .frame(maxWidth: .infinity, maxHeight: 60)
+                    .accessibilityLabel("Warna indigo")
+            }
+
+            VStack(spacing: 16) {
+                ForEach(displayedMeasurements) { measurement in
+                    MeasurementRow(measurement: measurement)
+                }
+            }
+        }
+    }
+
+    private var displayedMeasurements: [ProyekMeasurement] {
+        if isDataScanned {
+            return ProyekColorMeasurements.selectedColor.displayedMeasurements
+        }
+
+        return ProyekColorMeasurements.selectedColor.initial
+    }
+}
+
+private struct MeasurementRow: View {
+    let measurement: ProyekMeasurement
+
+    var body: some View {
+        HStack {
+            Text(measurement.title)
+
+            Spacer()
+
+            Text(measurement.value)
+                .monospacedDigit()
+        }
+        .fontWeight(measurement.isCurrent ? .bold : .regular)
+    }
+}
+
 #Preview {
     ConnectedDeviceView()
+}
+
+#Preview("Accessibility size") {
+    ConnectedDeviceView()
+        .dynamicTypeSize(.accessibility5)
 }
