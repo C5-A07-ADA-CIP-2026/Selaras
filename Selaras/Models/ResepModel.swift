@@ -16,7 +16,7 @@ class Resep {
     var air: Int
     var kepekatan: Double
     var batasPH: Double
-
+    
     init(namaWarna: String, catatan: String, warnaHex: String,
          air: Int, kepekatan: Double, batasPH: Double) {
         self.namaWarna = namaWarna
@@ -37,7 +37,7 @@ struct Bahan: Codable, Hashable {
 struct BahanInput: Identifiable {
     let id = UUID()
     var kode = ""
-    var gram: Double? = nil
+    var gram: Double?
     
     var bahan: Bahan {
         Bahan(
@@ -46,4 +46,3 @@ struct BahanInput: Identifiable {
         )
     }
 }
-
