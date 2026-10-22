@@ -8,17 +8,17 @@ import SwiftUI
 struct ResepView: View {
     @State private var showModal = false
     @State private var teksCari = ""
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "book")
-                .font(.system(size: 100)) //pr: dynamic
+                .font(.system(size: 100)) // pr: dynamic
                 .foregroundStyle(.secondary)
-            
+
             Text("Belum ada warna")
                 .font(.title2)
                 .foregroundStyle(.secondary)
-            
+
             Text("Tekan + untuk menambah warna")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

@@ -1,12 +1,12 @@
 //
-//  Resep.swift
+//  ResepModel.swift
 //  Selaras
 //
 //  Created by Dina on 21/10/26.
 //
 
-import SwiftData
 import Foundation
+import SwiftData
 
 @Model
 class Resep {
@@ -16,9 +16,10 @@ class Resep {
     var air: Int
     var kepekatan: Double
     var batasPH: Double
-    
+
     init(namaWarna: String, catatan: String, warnaHex: String,
-         air: Int, kepekatan: Double, batasPH: Double) {
+         air: Int, kepekatan: Double, batasPH: Double)
+    {
         self.namaWarna = namaWarna
         self.catatan = catatan
         self.warnaHex = warnaHex
@@ -26,7 +27,6 @@ class Resep {
         self.kepekatan = kepekatan
         self.batasPH = batasPH
     }
-    
 }
 
 struct Bahan: Codable, Hashable {
@@ -38,7 +38,7 @@ struct BahanInput: Identifiable {
     let id = UUID()
     var kode = ""
     var gram: Double?
-    
+
     var bahan: Bahan {
         Bahan(
             kode: kode.trimmingCharacters(in: .whitespaces),
