@@ -46,3 +46,15 @@ struct BahanInput: Identifiable {
         )
     }
 }
+
+extension BahanInput {
+    var terisi: Bool {
+        kode.tidakKosong && (gram ?? 0) > 0
+    }
+}
+
+extension [BahanInput] {
+    var semuaTerisi: Bool {
+        allSatisfy(\.terisi)
+    }
+}
