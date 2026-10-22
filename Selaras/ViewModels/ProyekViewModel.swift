@@ -11,10 +11,13 @@ final class ProyekViewModel: ObservableObject {
     @Published private(set) var isDeviceConnected = false
     @Published private(set) var initialColorMeasurements = ProyekColorMeasurements.selectedColor
     @Published private(set) var colorMeasurementError: String?
+    @Published private(set) var colorConcentrationWarning: String?
+    @Published private(set) var waterPHWarning: String?
 
     private let service: any DeviceConnectionService
     private var measurementTask: Task<Void, Never>?
     private var initialVisibleAverage: Double?
+    private var hasWarnedAboutLowConcentration = false
 
     init(service: (any DeviceConnectionService)? = nil) {
         #if targetEnvironment(simulator)
@@ -45,6 +48,33 @@ final class ProyekViewModel: ObservableObject {
             measurement,
             relativeTo: initialVisibleAverage
         )
+
+        guard let concentration = initialColorMeasurements.concentration(
+            for: measurement,
+            relativeTo: initialVisibleAverage
+        ) else { return }
+
+        if concentration < ProyekColorMeasurements.colorConcentrationLimit {
+            if !hasWarnedAboutLowConcentration {
+                colorConcentrationWarning = "Kepekatan warna saat ini di bawah 80%. Tambahkan 10 gram pewarna untuk "
+                    + "menjaga kualitas dan ketajaman warna batik."
+                hasWarnedAboutLowConcentration = true
+            }
+        } else {
+            hasWarnedAboutLowConcentration = false
+        }
+
+        updateWaterPHWarning(measurement.waterPH)
+    }
+
+    private func updateWaterPHWarning(_ waterPH: Double?) {
+        guard let waterPH else { return }
+        if waterPH < ProyekColorMeasurements.waterPHAlertLimit {
+            waterPHWarning = "pH air saat ini di bawah 7. Tambahkan 10 gram soda abu untuk menjaga kualitas "
+                + "dan ketajaman warna batik."
+        } else {
+            waterPHWarning = nil
+        }
     }
 
     func readInitialColorMeasurement() async {
@@ -61,6 +91,14 @@ final class ProyekViewModel: ObservableObject {
 
     func clearColorMeasurementError() {
         colorMeasurementError = nil
+    }
+
+    func clearColorConcentrationWarning() {
+        colorConcentrationWarning = nil
+    }
+
+    func clearWaterPHWarning() {
+        waterPHWarning = nil
     }
 }
 

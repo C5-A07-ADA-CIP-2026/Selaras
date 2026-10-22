@@ -9,11 +9,18 @@ struct ColorMeasurement: Equatable, Decodable, Sendable {
     let visibleAverage: Double
     let clear: UInt16
     let nir: UInt16
+    let waterPH: Double?
 
-    init(visibleAverage: Double, clear: UInt16, nir: UInt16) {
+    init(
+        visibleAverage: Double,
+        clear: UInt16,
+        nir: UInt16,
+        waterPH: Double? = nil
+    ) {
         self.visibleAverage = visibleAverage
         self.clear = clear
         self.nir = nir
+        self.waterPH = waterPH
     }
 
     init(from decoder: Decoder) throws {
@@ -22,6 +29,7 @@ struct ColorMeasurement: Equatable, Decodable, Sendable {
             ?? container.decode(Double.self, forKey: .concentrationPercent)
         clear = try container.decode(UInt16.self, forKey: .clear)
         nir = try container.decode(UInt16.self, forKey: .nir)
+        waterPH = try container.decodeIfPresent(Double.self, forKey: .waterPH)
     }
 
     func formattedConcentration(relativeTo baseline: Double) -> String {
@@ -39,6 +47,7 @@ struct ColorMeasurement: Equatable, Decodable, Sendable {
         case concentrationPercent
         case clear
         case nir
+        case waterPH = "ph"
     }
 }
 

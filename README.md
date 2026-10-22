@@ -98,6 +98,8 @@ kepekatan sekarang = (visibleAverage sekarang / visibleAverage awal) × 100
 
 Nilai **Kepekatan Warna Sekarang** diperbarui secara streaming melalui BLE notification, sehingga berubah mengikuti pembacaan AS7341. Jika pembacaan gagal, aplikasi menampilkan error dan tidak menganggap nilai sensor berhasil terbaca.
 
+Batas kepekatan warna adalah **80%**. Jika nilai turun di bawah 80%, aplikasi menampilkan peringatan untuk menambahkan 10 gram pewarna. Aplikasi juga menerima field JSON opsional `ph`; jika nilainya di bawah **7**, aplikasi menampilkan peringatan untuk menambahkan 10 gram soda abu. Sketch ESP32 perlu mengirim field tersebut setelah sensor pH tersedia.
+
 ## CI dan TestFlight (Xcode Cloud)
 
 Script dan shared scheme sudah ada di repo. Workflow dibuat manual di Xcode (Product → Xcode Cloud):

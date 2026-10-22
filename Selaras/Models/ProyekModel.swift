@@ -11,6 +11,9 @@ struct ProyekMeasurement: Identifiable, Equatable {
 }
 
 struct ProyekColorMeasurements {
+    static let colorConcentrationLimit = 80.0
+    static let waterPHAlertLimit = 7.0
+
     let initial: [ProyekMeasurement]
     let current: [ProyekMeasurement]
 
@@ -25,7 +28,7 @@ struct ProyekColorMeasurements {
             ProyekMeasurement(
                 id: "color-concentration-limit",
                 title: "Batas Kepekatan Warna",
-                value: "95%",
+                value: "80%",
                 isCurrent: false
             ),
             ProyekMeasurement(
@@ -73,6 +76,14 @@ struct ProyekColorMeasurements {
             isCurrent: updatedCurrent[index].isCurrent
         )
         return ProyekColorMeasurements(initial: initial, current: updatedCurrent)
+    }
+
+    func concentration(
+        for measurement: ColorMeasurement,
+        relativeTo baseline: Double
+    ) -> Double? {
+        guard baseline > 0 else { return nil }
+        return (measurement.visibleAverage / baseline) * 100
     }
 
     var displayedMeasurements: [ProyekMeasurement] {

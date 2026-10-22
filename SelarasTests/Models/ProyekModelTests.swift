@@ -46,4 +46,15 @@ struct ProyekModelTests {
         #expect(measurements.initial.first?.value == "100%")
         #expect(measurements.current.first?.value == "73.5%")
     }
+
+    @Test("Uses 80 percent as the color concentration limit")
+    func usesEightyPercentColorConcentrationLimit() {
+        let measurements = ProyekColorMeasurements.selectedColor
+
+        #expect(
+            measurements.initial.first(where: { $0.id == "color-concentration-limit" })?.value == "80%"
+        )
+        #expect(ProyekColorMeasurements.colorConcentrationLimit == 80)
+        #expect(ProyekColorMeasurements.waterPHAlertLimit == 7)
+    }
 }

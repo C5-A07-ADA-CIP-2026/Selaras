@@ -66,6 +66,26 @@ struct ProyekView: View {
         } message: { error in
             Text(error)
         }
+        .alert(
+            "Kepekatan Warna Kurang",
+            isPresented: concentrationWarningIsPresented
+        ) {
+            Button("Mengerti", role: .cancel) {
+                viewModel.clearColorConcentrationWarning()
+            }
+        } message: {
+            Text(viewModel.colorConcentrationWarning ?? "")
+        }
+        .alert(
+            "pH Air Kurang",
+            isPresented: waterPHWarningIsPresented
+        ) {
+            Button("Mengerti", role: .cancel) {
+                viewModel.clearWaterPHWarning()
+            }
+        } message: {
+            Text(viewModel.waterPHWarning ?? "")
+        }
     }
 
     private var errorAlertIsPresented: Binding<Bool> {
@@ -74,6 +94,28 @@ struct ProyekView: View {
             set: { isPresented in
                 if !isPresented {
                     viewModel.clearColorMeasurementError()
+                }
+            }
+        )
+    }
+
+    private var concentrationWarningIsPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.colorConcentrationWarning != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.clearColorConcentrationWarning()
+                }
+            }
+        )
+    }
+
+    private var waterPHWarningIsPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.waterPHWarning != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.clearWaterPHWarning()
                 }
             }
         )
