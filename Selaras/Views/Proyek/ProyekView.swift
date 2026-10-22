@@ -53,41 +53,6 @@ struct ProyekView: View {
     }
 }
 
-private struct ConnectedDeviceView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Perangkat")
-                .font(.title2.weight(.semibold))
-
-            HStack(spacing: 16) {
-                Image("ESP32C3")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 72, height: 72)
-                    .accessibilityLabel("Perangkat ESP32-C3")
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("ESP 32")
-                        .font(.headline)
-
-                    Label("Tersambung", systemImage: "checkmark.circle.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.green)
-                }
-
-                Spacer()
-            }
-            .padding()
-            .background(.background, in: RoundedRectangle(cornerRadius: 16))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(.quaternary, lineWidth: 1)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 #Preview {
     NavigationStack {
         ProyekView()
