@@ -59,12 +59,20 @@ enum DeviceConnectionState: Equatable {
     case failed
 }
 
-protocol DeviceConnectionService: Sendable {
+/// Finds and connects to the device. This is all `AddDeviceViewModel` needs.
+protocol DeviceConnecting: Sendable {
     func discoverDevice() async throws -> Bool
     func connectToDevice() async throws
+}
+
+/// Reads color measurements from a connected device. This is all `ProyekViewModel` needs.
+protocol ColorMeasurementSource: Sendable {
     func readInitialColorMeasurement() async throws -> ColorMeasurement
     func measurementUpdates() -> AsyncStream<ColorMeasurement>
 }
+
+/// A device that can both connect and measure (the BLE and simulated implementations).
+protocol DeviceConnectionService: DeviceConnecting, ColorMeasurementSource, Sendable {}
 
 struct SimulatedDeviceConnectionService: DeviceConnectionService {
     let discoveryDelay: Duration

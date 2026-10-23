@@ -12,20 +12,12 @@ struct AddDeviceSheetView: View {
     @StateObject private var viewModel: AddDeviceViewModel
     private let onConnected: () -> Void
 
-    private static var defaultService: any DeviceConnectionService {
-        #if targetEnvironment(simulator)
-            SimulatedDeviceConnectionService()
-        #else
-            BLEDeviceConnectionService.shared
-        #endif
-    }
-
     init(
         initialState: DeviceConnectionState = .searching,
-        service: (any DeviceConnectionService)? = nil,
+        service: (any DeviceConnecting)? = nil,
         onConnected: @escaping () -> Void = {}
     ) {
-        let resolvedService = service ?? Self.defaultService
+        let resolvedService = service ?? DeviceConnectionServices.default
 
         _viewModel = StateObject(
             wrappedValue: AddDeviceViewModel(

@@ -25,19 +25,15 @@ final class ProyekViewModel: ObservableObject {
     private(set) var latestConcentration: Double?
     private(set) var latestWaterPH: Double?
 
-    private let service: any DeviceConnectionService
+    private let service: any ColorMeasurementSource
     private var measurementTask: Task<Void, Never>?
     private var initialVisibleAverage: Double?
     private var hasWarnedAboutLowConcentration = false
     /// Identifies the scan that currently owns `isScanning`, so a superseded scan cannot clear it.
     private var activeScan: UUID?
 
-    init(service: (any DeviceConnectionService)? = nil) {
-        #if targetEnvironment(simulator)
-            self.service = service ?? SimulatedDeviceConnectionService()
-        #else
-            self.service = service ?? BLEDeviceConnectionService.shared
-        #endif
+    init(service: (any ColorMeasurementSource)? = nil) {
+        self.service = service ?? DeviceConnectionServices.default
     }
 
     func markDeviceAsConnected() {
@@ -232,11 +228,11 @@ final class ProyekViewModel: ObservableObject {
 final class AddDeviceViewModel: ObservableObject {
     @Published private(set) var state: DeviceConnectionState
 
-    private let service: any DeviceConnectionService
+    private let service: any DeviceConnecting
 
     init(
         initialState: DeviceConnectionState = .searching,
-        service: any DeviceConnectionService = SimulatedDeviceConnectionService()
+        service: any DeviceConnecting = DeviceConnectionServices.default
     ) {
         state = initialState
         self.service = service
