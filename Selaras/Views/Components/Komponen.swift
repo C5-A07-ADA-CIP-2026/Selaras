@@ -1,0 +1,182 @@
+//
+//  Komponen.swift
+//  Selaras
+//
+//  Created by Dina on 22/10/26.
+//
+
+import SwiftUI
+
+extension Font {
+    static var judulBold: Font { .system(.headline, weight: .bold) }
+    static var labelBiasa: Font { .system(.headline) }
+}
+
+struct KolomTeks: View {
+    let judul: String
+    let placeholder: String
+    @Binding var teks: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(judul)
+                .font(.judulBold)
+            TextField(placeholder, text: $teks)
+                .textFieldStyle(.roundedBorder)
+        }
+    }
+}
+
+struct PemilihWarna: View {
+    @Binding var warna: Color?
+
+    private var bindingWarna: Binding<Color> {
+        Binding(
+            get: { warna ?? .blue },
+            set: { warna = $0 }
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Warna")
+                .font(.judulBold)
+
+            ZStack {
+                if let terpilih = warna {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(terpilih)
+                        .frame(height: 80)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(.secondary.opacity(0.3), lineWidth: 1)
+                        )
+                        .allowsHitTesting(false)
+                } else {
+                    Text("Pilih Warna")
+                        .font(.judulBold)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.accentColor, in: Capsule())
+                        .allowsHitTesting(false)
+                }
+
+                ColorPicker("", selection: bindingWarna, supportsOpacity: false)
+                    .labelsHidden()
+                    .scaleEffect(x: 20, y: 3)
+                    .opacity(0.02)
+
+                if warna != nil {
+                    Button {
+                        warna = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white, .black.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(8)
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity,
+                        alignment: .topTrailing
+                    )
+                }
+            }
+            .frame(height: warna != nil ? 80 : nil)
+            .clipShape(RoundedRectangle(cornerRadius: warna != nil ? 12 : 25))
+        }
+    }
+}
+
+struct BarisBahan: View {
+    @Binding var kode: String
+    @Binding var gram: Double?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("Kode / Nama Bahan", text: $kode)
+                .textFieldStyle(.roundedBorder)
+
+            TextField("0", value: $gram, format: .number)
+                .textFieldStyle(.roundedBorder)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.center)
+                .frame(width: 60)
+
+            Text("g")
+                .frame(width: 30)
+        }
+    }
+}
+
+struct DaftarBahan: View {
+    let judul: String
+    let labelTambah: String
+    @Binding var bahan: [BahanInput]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(judul)
+                .font(.judulBold)
+
+            ForEach($bahan) { $item in
+                BarisBahan(kode: $item.kode, gram: $item.gram)
+            }
+
+            Button {
+                bahan.append(BahanInput())
+            } label: {
+                Label(labelTambah, systemImage: "plus")
+                    .font(.judulBold)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(!bahan.semuaTerisi)
+        }
+    }
+}
+
+struct BarisIsian<Isian: View>: View {
+    let label: String
+    let satuan: String
+    var labelTebal = false
+    @ViewBuilder let isian: Isian
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(labelTebal ? .judulBold : .labelBiasa)
+
+            Spacer()
+
+            isian
+
+            Text(satuan)
+                .font(.labelBiasa)
+                .frame(width: 30, alignment: .leading)
+        }
+    }
+}
+
+struct BarisBatas: View {
+    let label: String
+    let satuan: String
+    @Binding var nilai: Double
+    let rentang: ClosedRange<Double>
+
+    var body: some View {
+        BarisIsian(label: label, satuan: satuan) {
+            TextField("0", value: $nilai, format: .number)
+                .textFieldStyle(.roundedBorder)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.center)
+                .frame(width: 60)
+                .onChange(of: nilai) { _, baru in
+                    nilai = min(max(baru, rentang.lowerBound), rentang.upperBound)
+                }
+        }
+    }
+}
