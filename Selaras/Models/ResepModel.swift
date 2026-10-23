@@ -39,6 +39,19 @@ class Resep {
     // swiftlint:enable opening_brace
 }
 
+extension [Resep] {
+    /// Resep yang `namaWarna` atau `catatan`-nya memuat `teks`, tanpa peduli huruf besar/kecil.
+    /// Teks kosong atau hanya spasi mengembalikan semua resep.
+    func cari(_ teks: String) -> [Resep] {
+        let kataKunci = teks.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !kataKunci.isEmpty else { return self }
+        return filter {
+            $0.namaWarna.localizedCaseInsensitiveContains(kataKunci)
+                || $0.catatan.localizedCaseInsensitiveContains(kataKunci)
+        }
+    }
+}
+
 struct Bahan: Codable, Hashable {
     var kode: String
     var gram: Double
