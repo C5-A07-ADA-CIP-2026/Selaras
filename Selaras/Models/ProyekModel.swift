@@ -3,6 +3,42 @@
 //  Selaras
 //
 
+import Foundation
+import SwiftData
+
+@Model
+final class Proyek {
+    var id: UUID
+    var tanggal: Date
+    var namaWarna: String
+    var catatan: String
+    var warnaHex: String
+    var batasKepekatan: Double
+    var batasPH: Double
+    var jumlahKain: Int
+    var kepekatanAkhir: Double?
+    var phAkhir: Double?
+    @Relationship(deleteRule: .nullify) var resep: Resep?
+
+    // swiftlint:disable opening_brace
+    init(resep: Resep, jumlahKain: Int, kepekatanAkhir: Double?, phAkhir: Double?,
+         tanggal: Date = .now)
+    {
+        id = UUID()
+        self.tanggal = tanggal
+        namaWarna = resep.namaWarna
+        catatan = resep.catatan
+        warnaHex = resep.warnaHex
+        batasKepekatan = resep.kepekatan
+        batasPH = resep.batasPH
+        self.jumlahKain = jumlahKain
+        self.kepekatanAkhir = kepekatanAkhir
+        self.phAkhir = phAkhir
+        self.resep = resep
+    }
+    // swiftlint:enable opening_brace
+}
+
 struct ProyekMeasurement: Identifiable, Equatable {
     let id: String
     let title: String

@@ -16,9 +16,15 @@ class Resep {
     var air: Int
     var kepekatan: Double
     var batasPH: Double
+    var pewarna: [Bahan]
+    var zatPembantu: [Bahan]
+    var dibuat: Date
+    @Relationship(deleteRule: .nullify, inverse: \Proyek.resep) var proyekTersimpan: [Proyek] = []
 
+    // swiftlint:disable opening_brace
     init(namaWarna: String, catatan: String, warnaHex: String,
-         air: Int, kepekatan: Double, batasPH: Double)
+         air: Int, kepekatan: Double, batasPH: Double,
+         pewarna: [Bahan] = [], zatPembantu: [Bahan] = [], dibuat: Date = .now)
     {
         self.namaWarna = namaWarna
         self.catatan = catatan
@@ -26,7 +32,11 @@ class Resep {
         self.air = air
         self.kepekatan = kepekatan
         self.batasPH = batasPH
+        self.pewarna = pewarna
+        self.zatPembantu = zatPembantu
+        self.dibuat = dibuat
     }
+    // swiftlint:enable opening_brace
 }
 
 struct Bahan: Codable, Hashable {
