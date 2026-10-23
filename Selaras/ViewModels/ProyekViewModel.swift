@@ -5,6 +5,7 @@
 
 import Combine
 import Foundation
+import SwiftData
 
 @MainActor
 final class ProyekViewModel: ObservableObject {
@@ -16,8 +17,10 @@ final class ProyekViewModel: ObservableObject {
     @Published private(set) var colorMeasurementError: String?
     @Published private(set) var colorConcentrationWarning: String?
     @Published private(set) var waterPHWarning: String?
+    @Published private(set) var projectSaved = false
+    @Published private(set) var saveError: String?
 
-    /// Latest streamed readings, kept for saving the project (Task 3c).
+    /// Latest streamed readings (concentration in percent of the baseline), kept for saving the project.
     private(set) var latestConcentration: Double?
     private(set) var latestWaterPH: Double?
 
@@ -134,6 +137,59 @@ final class ProyekViewModel: ObservableObject {
         } else {
             waterPHWarning = nil
         }
+    }
+
+    /// Saves the scanned project as a `Proyek` and resets the form for the next one.
+    /// Returns `false` and touches nothing when there is no recipe, no scan or no fabric;
+    /// a second call right after a successful save therefore does nothing.
+    /// Final readings are nil (never 0) when the sensor has not streamed them yet.
+    @discardableResult
+    func saveProject(in context: ModelContext) -> Bool {
+        guard let resep = selectedResep, isDataScanned, jumlahKain > 0 else { return false }
+
+        let proyek = Proyek(
+            resep: resep,
+            jumlahKain: jumlahKain,
+            kepekatanAkhir: latestConcentration,
+            phAkhir: latestWaterPH
+        )
+        context.insert(proyek)
+        do {
+            try context.save()
+        } catch {
+            // Do not leave an unsaved Proyek in the context (a retry would duplicate it).
+            context.delete(proyek)
+            saveError = "Gagal menyimpan proyek: \(error.localizedDescription)"
+            return false
+        }
+
+        resetForNextProject()
+        projectSaved = true
+        return true
+    }
+
+    private func resetForNextProject() {
+        measurementTask?.cancel()
+        measurementTask = nil
+        initialVisibleAverage = nil
+        hasWarnedAboutLowConcentration = false
+        selectedResep = nil
+        measurements = nil
+        isDataScanned = false
+        jumlahKain = 0
+        colorMeasurementError = nil
+        colorConcentrationWarning = nil
+        waterPHWarning = nil
+        latestConcentration = nil
+        latestWaterPH = nil
+    }
+
+    func clearProjectSaved() {
+        projectSaved = false
+    }
+
+    func clearSaveError() {
+        saveError = nil
     }
 
     func clearColorMeasurementError() {

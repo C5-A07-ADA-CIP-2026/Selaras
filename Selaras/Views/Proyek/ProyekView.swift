@@ -5,9 +5,11 @@
 //  Created by Hana Azizah Nurhadi on 21/10/26.
 //
 
+import SwiftData
 import SwiftUI
 
 struct ProyekView: View {
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = ProyekViewModel()
     @State private var isShowingAddDeviceSheet = false
     @State private var isShowingPilihResep = false
@@ -23,6 +25,9 @@ struct ProyekView: View {
                     onPickColor: { isShowingPilihResep = true },
                     onScanData: {
                         Task { await viewModel.scanData() }
+                    },
+                    onSaveProject: {
+                        viewModel.saveProject(in: modelContext)
                     }
                 )
             } else {
@@ -98,6 +103,49 @@ struct ProyekView: View {
         } message: {
             Text(viewModel.waterPHWarning ?? "")
         }
+        .alert(
+            "Proyek tersimpan",
+            isPresented: projectSavedIsPresented
+        ) {
+            Button("Mengerti", role: .cancel) {
+                viewModel.clearProjectSaved()
+            }
+        } message: {
+            Text("Proyek dapat dilihat di Riwayat, lewat tombol di kanan atas halaman Proyek.")
+        }
+        .alert(
+            "Gagal menyimpan proyek",
+            isPresented: saveErrorIsPresented,
+            presenting: viewModel.saveError
+        ) { _ in
+            Button("Tutup") {
+                viewModel.clearSaveError()
+            }
+        } message: { error in
+            Text(error)
+        }
+    }
+
+    private var projectSavedIsPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.projectSaved },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.clearProjectSaved()
+                }
+            }
+        )
+    }
+
+    private var saveErrorIsPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.saveError != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.clearSaveError()
+                }
+            }
+        )
     }
 
     private var errorAlertIsPresented: Binding<Bool> {
