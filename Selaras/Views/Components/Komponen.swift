@@ -8,8 +8,13 @@
 import SwiftUI
 
 extension Font {
-    static var judulBold: Font { .system(.headline, weight: .bold) }
-    static var labelBiasa: Font { .system(.headline) }
+    static var judulBold: Font {
+        .system(.headline, weight: .bold)
+    }
+
+    static var labelBiasa: Font {
+        .system(.headline)
+    }
 }
 
 struct KolomTeks: View {

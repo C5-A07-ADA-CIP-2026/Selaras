@@ -1,6 +1,6 @@
 # Selaras
 
-An iOS app built by a three-person team. Pages: **Resep** (recipes, the home tab), **Proyek** (projects, second tab), and **Riwayat** (history, opened from a button at the top right of Resep).
+An iOS app built by a three-person team. Pages: **Resep** (recipes, the home tab), **Proyek** (projects, second tab), and **Riwayat** (history, opened from a button at the top right of Proyek).
 
 ## Team
 
@@ -12,7 +12,8 @@ An iOS app built by a three-person team. Pages: **Resep** (recipes, the home tab
 
 ## Architecture
 
-- Use MVVM with one folder per layer: `Selaras/Views/<Feature>/<Feature>View.swift`, `Selaras/ViewModels/<Feature>ViewModel.swift` and `Selaras/Models/<Feature>Model.swift`. `Views/` has placeholder views for Resep, Proyek and Riwayat; `ViewModels/` and `Models/` start empty (only a placeholder `.swift` file) and are filled test-first by each feature's owner.
+- Use MVVM with one folder per layer: `Selaras/Views/<Feature>/<Feature>View.swift`, `Selaras/ViewModels/<Feature>ViewModel.swift` and `Selaras/Models/<Feature>Model.swift`. Each feature's owner fills these test-first.
+- Persistence is SwiftData with one shared schema in `Selaras/Shared/SelarasSchema.swift`, which lists the entities `Resep` and `Proyek`. Resep saves recipes, Proyek picks a `Resep` and saves a `Proyek` snapshot, and Riwayat lists saved `Proyek`s.
 - Tests mirror the layers: `SelarasTests/ViewModels/` and `SelarasTests/Models/`.
 - Shared components and extensions go in `Selaras/Shared/`. Name files with the feature prefix and keep each feature's views in its own `Views/<Feature>/` folder to avoid merge conflicts.
 - Use test-driven development with Swift Testing: write tests before implementation and cover changed behavior.

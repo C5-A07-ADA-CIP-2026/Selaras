@@ -3,7 +3,7 @@
 //  Selaras
 //
 
-/// Top-level sections shown in the tab bar. `Riwayat` is not a tab: it is pushed from `Resep`.
+/// Top-level sections shown in the tab bar. `Riwayat` is not a tab: it is pushed from `Proyek`.
 enum AppTab: CaseIterable {
     case resep
     case proyek

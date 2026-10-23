@@ -2,9 +2,9 @@
 
 Aplikasi iOS yang dikerjakan oleh tim 3 orang. Halamannya:
 
-- **Resep**: halaman utama (tab pertama). Tombol di kanan atas membuka **Riwayat**.
-- **Proyek**: tab kedua.
-- **Riwayat**: dibuka dari Resep, bukan tab sendiri.
+- **Resep**: halaman utama (tab pertama), daftar resep warna.
+- **Proyek**: tab kedua. Tombol di kanan atas membuka **Riwayat**.
+- **Riwayat**: dibuka dari Proyek, bukan tab sendiri.
 
 ## Tim
 
@@ -29,21 +29,29 @@ open Selaras.xcodeproj
 
 ```
 Selaras/
-├── SelarasApp.swift
-├── ContentView.swift        TabView (Resep, Proyek)
+├── SelarasApp.swift                 ModelContainer SwiftData
+├── ContentView.swift                TabView (Resep, Proyek)
 ├── AppTab.swift
+├── Extensions/                      Color+hex, String
+├── Shared/                          SelarasSchema (entitas SwiftData), ResepRowView
 ├── Views/
-│   ├── Resep/ResepView.swift        placeholder
-│   ├── Proyek/ProyekView.swift      placeholder
-│   └── Riwayat/RiwayatView.swift    placeholder
-├── ViewModels/                      kosong, diisi per fitur: <Fitur>ViewModel.swift
-└── Models/                          kosong, diisi per fitur: <Fitur>Model.swift
+│   ├── Components/                  komponen form bersama
+│   ├── Resep/                       ResepView, HalamanTambahResep
+│   ├── Proyek/                      ProyekView, sheet perangkat dan pilih resep
+│   └── Riwayat/RiwayatView.swift
+├── ViewModels/                      ResepViewModel, ProyekViewModel
+└── Models/                          Resep, Proyek, RiwayatProyek, koneksi perangkat BLE
 SelarasTests/
 ├── ViewModels/                      tes ViewModel
-└── Models/                          tes Model
+├── Models/                          tes Model
+└── Support/                         helper tes (container in-memory, stub perangkat)
 ```
 
-Arsitektur MVVM satu folder per layer, test-first dengan Swift Testing: tulis tes dulu, lalu ViewModel dan Model-nya. Hapus file `*Placeholder.swift` begitu folder sudah ada isinya. Komponen yang dipakai bersama taruh di `Selaras/Shared/`. Detail aturan ada di [AGENTS.md](AGENTS.md).
+### Alur data: Resep → Proyek → Riwayat
+
+Ketiga halaman berbagi satu penyimpanan SwiftData (`Selaras/Shared/SelarasSchema.swift`, entitas `Resep` dan `Proyek`). Resep disimpan lewat form "Tambah Warna" di tab Resep. Di tab Proyek, pengguna memilih satu Resep dan batas kepekatan serta pH-nya dipakai proyek. "Pindai Data" mengambil pembacaan sensor sebagai baseline 100%, lalu "Simpan Proyek" menyimpan snapshot `Proyek`. Riwayat menampilkan `Proyek` yang tersimpan, terbaru di atas. Karena snapshot, entri Riwayat tetap ada walau Resep-nya dihapus.
+
+Arsitektur MVVM satu folder per layer, test-first dengan Swift Testing: tulis tes dulu, lalu ViewModel dan Model-nya. Komponen yang dipakai bersama taruh di `Selaras/Shared/`. Detail aturan ada di [AGENTS.md](AGENTS.md).
 
 ## Branch dan PR
 
