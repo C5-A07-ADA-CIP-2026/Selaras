@@ -6,9 +6,16 @@
 @testable import Selaras
 import SwiftData
 
+/// Containers must outlive their contexts: a `ModelContext` does not retain its container,
+/// and using one after the container is released traps. Tests are short-lived and the
+/// containers are in-memory, so they are simply kept for the whole test process.
+@MainActor private var retainedContainers: [ModelContainer] = []
+
 @MainActor
 func makeTestContext() throws -> ModelContext {
-    try ModelContext(SelarasSchema.makeContainer(inMemory: true))
+    let container = try SelarasSchema.makeContainer(inMemory: true)
+    retainedContainers.append(container)
+    return ModelContext(container)
 }
 
 extension Resep {

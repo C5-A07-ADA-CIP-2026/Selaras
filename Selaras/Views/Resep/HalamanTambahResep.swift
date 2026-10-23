@@ -5,12 +5,15 @@
 //  Created by Dina on 21/10/26.
 //
 
+import SwiftData
 import SwiftUI
 
 struct HalamanTambahResep: View {
     @State private var viewModel = FormResepViewModel()
     @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.modelContext) private var modelContext
+    @State private var gagalMenyimpan = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -33,19 +36,22 @@ struct HalamanTambahResep: View {
         .navigationTitle("Tambah Warna")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarForm }
+        .alert("Gagal menyimpan", isPresented: $gagalMenyimpan) {
+            Button("Tutup", role: .cancel) {}
+        }
     }
-    
+
     private var bagianBahan: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Bahan")
                 .font(.judulBold)
-            
+
             DaftarBahan(
                 judul: "Kode Pewarna Naphtol",
                 labelTambah: "Tambah Pewarna",
                 bahan: $viewModel.pewarna
             )
-            
+
             BarisIsian(label: "Air", satuan: "ml", labelTebal: true) {
                 TextField("0", value: $viewModel.ukuranAir, format: .number)
                     .textFieldStyle(.roundedBorder)
@@ -53,7 +59,7 @@ struct HalamanTambahResep: View {
                     .multilineTextAlignment(.center)
                     .frame(width: 70)
             }
-            
+
             DaftarBahan(
                 judul: "Zat Pembantu",
                 labelTambah: "Tambah Zat Pembantu",
@@ -61,12 +67,12 @@ struct HalamanTambahResep: View {
             )
         }
     }
-    
+
     private var bagianBatas: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Batas")
                 .font(.judulBold)
-            
+
             BarisBatas(
                 label: "Kepekatan Warna",
                 satuan: "%",
@@ -79,17 +85,29 @@ struct HalamanTambahResep: View {
                 nilai: $viewModel.batasPH,
                 rentang: 0 ... 14
             )
-            
-            Text("Nilai ini adalah batas minimum rekomendasi dan dapat Anda ubah kapan saja. Notifikasi akan dikirim jika nilai turun di bawah batas ini")
-                .font(.caption)
-                .italic()
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
+
+            Text("""
+            Nilai ini adalah batas minimum rekomendasi dan dapat Anda ubah kapan saja. \
+            Notifikasi akan dikirim jika nilai turun di bawah batas ini
+            """)
+            .font(.caption)
+            .italic()
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
-    
+
+    private func simpan() {
+        do {
+            try viewModel.simpan(context: modelContext)
+            dismiss()
+        } catch {
+            gagalMenyimpan = true
+        }
+    }
+
     @ToolbarContentBuilder
     private var toolbarForm: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
@@ -100,11 +118,10 @@ struct HalamanTambahResep: View {
             }
             .accessibilityLabel("Batal")
         }
-        
+
         ToolbarItem(placement: .topBarTrailing) {
             Button {
-                viewModel.simpan()
-                dismiss()
+                simpan()
             } label: {
                 Image(systemName: "checkmark")
             }
