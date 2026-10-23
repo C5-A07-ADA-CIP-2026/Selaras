@@ -44,6 +44,8 @@ struct PilihResepSheetView: View {
                     dismiss()
                 } label: {
                     ResepRowView(resep: resep)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }

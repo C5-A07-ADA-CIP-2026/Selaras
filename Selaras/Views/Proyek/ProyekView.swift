@@ -21,6 +21,7 @@ struct ProyekView: View {
                     selectedResep: viewModel.selectedResep,
                     measurements: viewModel.measurements,
                     isDataScanned: viewModel.isDataScanned,
+                    isScanning: viewModel.isScanning,
                     jumlahKain: $viewModel.jumlahKain,
                     onPickColor: { isShowingPilihResep = true },
                     onScanData: {

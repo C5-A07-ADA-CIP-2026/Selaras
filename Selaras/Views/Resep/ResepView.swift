@@ -27,7 +27,7 @@ struct ResepView: View {
                     Button {
                         showModal = true
                     } label: {
-                        Label("AddWarna", systemImage: "plus")
+                        Label("Tambah Warna", systemImage: "plus")
                     }
                     .buttonStyle(.borderedProminent)
                 }

@@ -13,6 +13,7 @@ struct ConnectedDeviceView: View {
     let selectedResep: Resep?
     let measurements: ProyekColorMeasurements?
     let isDataScanned: Bool
+    let isScanning: Bool
     @Binding var jumlahKain: Int
 
     private let onPickColor: () -> Void
@@ -23,6 +24,7 @@ struct ConnectedDeviceView: View {
         selectedResep: Resep? = nil,
         measurements: ProyekColorMeasurements? = nil,
         isDataScanned: Bool = false,
+        isScanning: Bool = false,
         jumlahKain: Binding<Int>,
         onPickColor: @escaping () -> Void = {},
         onScanData: @escaping () -> Void = {},
@@ -31,6 +33,7 @@ struct ConnectedDeviceView: View {
         self.selectedResep = selectedResep
         self.measurements = measurements
         self.isDataScanned = isDataScanned
+        self.isScanning = isScanning
         _jumlahKain = jumlahKain
         self.onPickColor = onPickColor
         self.onScanData = onScanData
@@ -52,15 +55,26 @@ struct ConnectedDeviceView: View {
                         onScanData()
                     }
                 } label: {
-                    Text(
-                        isDataScanned ? "Simpan Proyek" : "Pindai Data"
-                    )
+                    HStack(spacing: 8) {
+                        if isScanning {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                        Text(primaryButtonTitle)
+                    }
                     .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(isScanning ? "Memindai data" : primaryButtonTitle)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .disabled(isScanning)
             }
         }
+    }
+
+    private var primaryButtonTitle: String {
+        isDataScanned ? "Simpan Proyek" : "Pindai Data"
     }
 
     private var details: some View {
@@ -211,6 +225,27 @@ private struct MeasurementRow: View {
         jumlahKain: .constant(2)
     )
     .padding(.horizontal, 24)
+}
+
+#Preview("Memindai") {
+    ConnectedDeviceView(
+        selectedResep: .previewSample,
+        measurements: .preview,
+        isScanning: true,
+        jumlahKain: .constant(2)
+    )
+    .padding(.horizontal, 24)
+}
+
+#Preview("Memindai accessibility size") {
+    ConnectedDeviceView(
+        selectedResep: .previewSample,
+        measurements: .preview,
+        isScanning: true,
+        jumlahKain: .constant(2)
+    )
+    .padding(.horizontal, 24)
+    .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Accessibility size") {

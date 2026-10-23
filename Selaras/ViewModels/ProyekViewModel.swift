@@ -19,6 +19,7 @@ final class ProyekViewModel: ObservableObject {
     @Published private(set) var waterPHWarning: String?
     @Published private(set) var projectSaved = false
     @Published private(set) var saveError: String?
+    @Published private(set) var isScanning = false
 
     /// Latest streamed readings (concentration in percent of the baseline), kept for saving the project.
     private(set) var latestConcentration: Double?
@@ -28,6 +29,8 @@ final class ProyekViewModel: ObservableObject {
     private var measurementTask: Task<Void, Never>?
     private var initialVisibleAverage: Double?
     private var hasWarnedAboutLowConcentration = false
+    /// Identifies the scan that currently owns `isScanning`, so a superseded scan cannot clear it.
+    private var activeScan: UUID?
 
     init(service: (any DeviceConnectionService)? = nil) {
         #if targetEnvironment(simulator)
@@ -46,6 +49,7 @@ final class ProyekViewModel: ObservableObject {
     func pilihResep(_ resep: Resep) {
         measurementTask?.cancel()
         measurementTask = nil
+        endScanning()
         initialVisibleAverage = nil
         hasWarnedAboutLowConcentration = false
         isDataScanned = false
@@ -62,20 +66,38 @@ final class ProyekViewModel: ObservableObject {
     }
 
     /// Reads the baseline measurement for the selected recipe and starts streaming updates.
-    /// Does nothing when no recipe is selected.
+    /// Does nothing when no recipe is selected or a scan is already reading the device.
     func scanData() async {
-        guard let resep = selectedResep else { return }
+        guard let resep = selectedResep, !isScanning else { return }
+        let scan = UUID()
+        activeScan = scan
+        isScanning = true
+        defer {
+            // A newer scan (after the recipe changed) may own the flag by now.
+            if activeScan == scan {
+                endScanning()
+            }
+        }
         colorMeasurementError = nil
         do {
             let initial = try await service.readInitialColorMeasurement()
             // The recipe may have changed while the device was being read.
             guard selectedResep === resep else { return }
             beginMeasuring(from: initial, resep: resep)
+        } catch is CancellationError {
+            // A superseded or cancelled read is not a failure.
+            return
         } catch {
+            guard selectedResep === resep else { return }
             let message = "Gagal membaca data warna dari AS7341: \(error.localizedDescription)"
             colorMeasurementError = message
             print("[Proyek] ❌ \(message)")
         }
+    }
+
+    private func endScanning() {
+        activeScan = nil
+        isScanning = false
     }
 
     private func beginMeasuring(from initial: ColorMeasurement, resep: Resep) {
@@ -171,6 +193,7 @@ final class ProyekViewModel: ObservableObject {
     private func resetForNextProject() {
         measurementTask?.cancel()
         measurementTask = nil
+        endScanning()
         initialVisibleAverage = nil
         hasWarnedAboutLowConcentration = false
         selectedResep = nil
