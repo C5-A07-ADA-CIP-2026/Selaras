@@ -8,26 +8,62 @@
 import SwiftUI
 
 struct ConnectedDeviceView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    let selectedResep: Resep?
     let measurements: ProyekColorMeasurements?
+    let isDataScanned: Bool
+    @Binding var jumlahKain: Int
 
-    @State private var fabricAmount = 0
-    @State private var isColorSelected = false
-    @State private var isDataScanned = false
-
+    private let onPickColor: () -> Void
     private let onScanData: () -> Void
     private let onSaveProject: () -> Void
 
     init(
+        selectedResep: Resep? = nil,
         measurements: ProyekColorMeasurements? = nil,
+        isDataScanned: Bool = false,
+        jumlahKain: Binding<Int>,
+        onPickColor: @escaping () -> Void = {},
         onScanData: @escaping () -> Void = {},
         onSaveProject: @escaping () -> Void = {}
     ) {
+        self.selectedResep = selectedResep
         self.measurements = measurements
+        self.isDataScanned = isDataScanned
+        _jumlahKain = jumlahKain
+        self.onPickColor = onPickColor
         self.onScanData = onScanData
         self.onSaveProject = onSaveProject
     }
 
     var body: some View {
+        VStack(spacing: 16) {
+            ScrollView {
+                details
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if selectedResep != nil, jumlahKain > 0 {
+                Button {
+                    if isDataScanned {
+                        onSaveProject()
+                    } else {
+                        onScanData()
+                    }
+                } label: {
+                    Text(
+                        isDataScanned ? "Simpan Proyek" : "Pindai Data"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+        }
+    }
+
+    private var details: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Perangkat")
@@ -45,15 +81,15 @@ struct ConnectedDeviceView: View {
                 Text("Warna")
                     .font(.title3.weight(.semibold))
 
-                if isColorSelected, let measurements {
+                if let selectedResep, let measurements {
                     SelectedColorView(
+                        resep: selectedResep,
                         measurements: measurements,
-                        isDataScanned: isDataScanned
+                        isDataScanned: isDataScanned,
+                        onPickColor: onPickColor
                     )
                 } else {
-                    Button {
-                        isColorSelected = true
-                    } label: {
+                    Button(action: onPickColor) {
                         Label("Pilih Warna", systemImage: "plus")
                             .frame(maxWidth: .infinity)
                     }
@@ -62,58 +98,53 @@ struct ConnectedDeviceView: View {
                 }
             }
 
-            HStack {
-                Text("Jumlah Kain")
-                    .font(.title3.weight(.semibold))
-
-                Spacer()
-
-                Stepper(value: $fabricAmount, in: 0 ... Int.max, step: 1) {
-                    Text("\(fabricAmount)")
-                        .monospacedDigit()
-                        .accessibilityLabel("Jumlah kain")
-                }
-                .accessibilityValue("\(fabricAmount)")
-            }
+            jumlahKainRow
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 
-        Spacer()
-        if isColorSelected, fabricAmount > 0 {
-            Button {
-                if isDataScanned {
-                    onSaveProject()
-                } else {
-                    isDataScanned = true
-                    onScanData()
-                }
-            } label: {
-                Text(
-                    isDataScanned ? "Simpan Proyek" : "Pindai Data"
-                )
-                .frame(maxWidth: .infinity)
+    private var jumlahKainRow: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout())
+        return layout {
+            Text("Jumlah Kain")
+                .font(.title3.weight(.semibold))
+
+            if !dynamicTypeSize.isAccessibilitySize {
+                Spacer()
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+
+            Stepper(value: $jumlahKain, in: 0 ... Int.max, step: 1) {
+                Text("\(jumlahKain)")
+                    .monospacedDigit()
+                    .accessibilityLabel("Jumlah kain")
+            }
+            .accessibilityValue("\(jumlahKain)")
         }
     }
 }
 
 private struct SelectedColorView: View {
+    let resep: Resep
     let measurements: ProyekColorMeasurements
     let isDataScanned: Bool
+    let onPickColor: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Ungu")
-                    .italic()
+                Text(resep.namaWarna)
                     .font(.headline)
 
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(.indigo)
-                    .frame(maxWidth: .infinity, maxHeight: 60)
-                    .accessibilityLabel("Warna indigo")
+                    .fill(Color(hex: resep.warnaHex))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .accessibilityElement()
+                    .accessibilityLabel("Warna \(resep.namaWarna)")
+
+                Button("Ganti Warna", action: onPickColor)
+                    .buttonStyle(.bordered)
             }
 
             VStack(spacing: 16) {
@@ -134,30 +165,74 @@ private struct SelectedColorView: View {
 }
 
 private struct MeasurementRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let measurement: ProyekMeasurement
 
     var body: some View {
-        HStack {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout())
+        layout {
             Text(measurement.title)
 
-            Spacer()
+            if !dynamicTypeSize.isAccessibilitySize {
+                Spacer()
+            }
 
             Text(measurement.value)
                 .monospacedDigit()
         }
         .fontWeight(measurement.isCurrent ? .semibold : .regular)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
-#Preview {
-    ConnectedDeviceView(measurements: .preview)
+#Preview("Belum pilih warna") {
+    ConnectedDeviceView(jumlahKain: .constant(0))
+        .padding(.horizontal, 24)
+}
+
+#Preview("Sebelum pindai") {
+    ConnectedDeviceView(
+        selectedResep: .previewSample,
+        measurements: .preview,
+        jumlahKain: .constant(2)
+    )
+    .padding(.horizontal, 24)
+}
+
+#Preview("Setelah pindai") {
+    ConnectedDeviceView(
+        selectedResep: .previewSample,
+        measurements: .preview,
+        isDataScanned: true,
+        jumlahKain: .constant(2)
+    )
+    .padding(.horizontal, 24)
 }
 
 #Preview("Accessibility size") {
-    ConnectedDeviceView(measurements: .preview)
-        .dynamicTypeSize(.accessibility5)
+    ConnectedDeviceView(
+        selectedResep: .previewSample,
+        measurements: .preview,
+        isDataScanned: true,
+        jumlahKain: .constant(2)
+    )
+    .padding(.horizontal, 24)
+    .dynamicTypeSize(.accessibility5)
 }
 
 private extension ProyekColorMeasurements {
     static let preview = ProyekColorMeasurements(colorConcentrationLimit: 80, waterPHLimit: 7)
+}
+
+private extension Resep {
+    static var previewSample: Resep {
+        Resep(
+            namaWarna: "Merah Marun", catatan: "Seragam Bu Dina", warnaHex: "#B50202",
+            air: 1000, kepekatan: 80, batasPH: 7
+        )
+    }
 }

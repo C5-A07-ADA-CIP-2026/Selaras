@@ -10,11 +10,21 @@ import SwiftUI
 struct ProyekView: View {
     @StateObject private var viewModel = ProyekViewModel()
     @State private var isShowingAddDeviceSheet = false
+    @State private var isShowingPilihResep = false
 
     var body: some View {
         VStack(spacing: 16) {
             if viewModel.isDeviceConnected {
-                ConnectedDeviceView(measurements: viewModel.measurements)
+                ConnectedDeviceView(
+                    selectedResep: viewModel.selectedResep,
+                    measurements: viewModel.measurements,
+                    isDataScanned: viewModel.isDataScanned,
+                    jumlahKain: $viewModel.jumlahKain,
+                    onPickColor: { isShowingPilihResep = true },
+                    onScanData: {
+                        Task { await viewModel.scanData() }
+                    }
+                )
             } else {
                 EmptyDeviceView()
 
@@ -48,12 +58,14 @@ struct ProyekView: View {
         .sheet(isPresented: $isShowingAddDeviceSheet) {
             AddDeviceSheetView {
                 viewModel.markDeviceAsConnected()
-                Task {
-                    await viewModel.scanData()
-                }
             }
             .presentationDetents([.medium])
             .presentationBackground(.background)
+        }
+        .sheet(isPresented: $isShowingPilihResep) {
+            PilihResepSheetView {
+                viewModel.pilihResep($0)
+            }
         }
         .alert(
             "Data warna tidak tersedia",
