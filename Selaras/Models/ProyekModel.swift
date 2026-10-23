@@ -46,55 +46,77 @@ struct ProyekMeasurement: Identifiable, Equatable {
     let isCurrent: Bool
 }
 
-struct ProyekColorMeasurements {
-    static let colorConcentrationLimit = 80.0
-    static let waterPHAlertLimit = 7.0
+struct ProyekColorMeasurements: Equatable {
+    private static let unknownValue = "—"
 
+    let colorConcentrationLimit: Double
+    let waterPHLimit: Double
     let initial: [ProyekMeasurement]
     let current: [ProyekMeasurement]
 
-    static let selectedColor = ProyekColorMeasurements(
-        initial: [
-            ProyekMeasurement(
-                id: "initial-color-concentration",
-                title: "Kepekatan Warna Awal",
-                value: "100%",
-                isCurrent: false
-            ),
-            ProyekMeasurement(
-                id: "color-concentration-limit",
-                title: "Batas Kepekatan Warna",
-                value: "80%",
-                isCurrent: false
-            ),
-            ProyekMeasurement(
-                id: "initial-water-ph",
-                title: "pH Air Awal",
-                value: "12",
-                isCurrent: false
-            ),
-            ProyekMeasurement(
-                id: "water-ph-limit",
-                title: "Batas pH",
-                value: "10",
-                isCurrent: false
-            ),
-        ],
-        current: [
-            ProyekMeasurement(
-                id: "current-color-concentration",
-                title: "Kepekatan Warna Sekarang",
-                value: "93%",
-                isCurrent: true
-            ),
-            ProyekMeasurement(
-                id: "current-water-ph",
-                title: "pH Air Sekarang",
-                value: "11",
-                isCurrent: true
-            ),
-        ]
-    )
+    init(colorConcentrationLimit: Double, waterPHLimit: Double, initialWaterPH: Double? = nil) {
+        self.init(
+            colorConcentrationLimit: colorConcentrationLimit,
+            waterPHLimit: waterPHLimit,
+            initial: [
+                ProyekMeasurement(
+                    id: "initial-color-concentration",
+                    title: "Kepekatan Warna Awal",
+                    value: "100%",
+                    isCurrent: false
+                ),
+                ProyekMeasurement(
+                    id: "color-concentration-limit",
+                    title: "Batas Kepekatan Warna",
+                    value: "\(Self.format(colorConcentrationLimit))%",
+                    isCurrent: false
+                ),
+                ProyekMeasurement(
+                    id: "initial-water-ph",
+                    title: "pH Air Awal",
+                    value: initialWaterPH.map(Self.format) ?? Self.unknownValue,
+                    isCurrent: false
+                ),
+                ProyekMeasurement(
+                    id: "water-ph-limit",
+                    title: "Batas pH",
+                    value: Self.format(waterPHLimit),
+                    isCurrent: false
+                ),
+            ],
+            current: [
+                ProyekMeasurement(
+                    id: "current-color-concentration",
+                    title: "Kepekatan Warna Sekarang",
+                    value: Self.unknownValue,
+                    isCurrent: true
+                ),
+                ProyekMeasurement(
+                    id: "current-water-ph",
+                    title: "pH Air Sekarang",
+                    value: Self.unknownValue,
+                    isCurrent: true
+                ),
+            ]
+        )
+    }
+
+    private init(
+        colorConcentrationLimit: Double,
+        waterPHLimit: Double,
+        initial: [ProyekMeasurement],
+        current: [ProyekMeasurement]
+    ) {
+        self.colorConcentrationLimit = colorConcentrationLimit
+        self.waterPHLimit = waterPHLimit
+        self.initial = initial
+        self.current = current
+    }
+
+    /// Locale-independent, drops trailing zeros: 7 -> "7", 7.5 -> "7.5".
+    static func format(_ value: Double) -> String {
+        String(format: "%g", value)
+    }
 
     func withCurrentConcentration(
         _ measurement: ColorMeasurement,
@@ -111,7 +133,31 @@ struct ProyekColorMeasurements {
             value: measurement.formattedConcentration(relativeTo: baseline),
             isCurrent: updatedCurrent[index].isCurrent
         )
-        return ProyekColorMeasurements(initial: initial, current: updatedCurrent)
+        return replacingCurrent(updatedCurrent)
+    }
+
+    func withCurrentWaterPH(_ waterPH: Double?) -> ProyekColorMeasurements {
+        var updatedCurrent = current
+        guard let index = updatedCurrent.firstIndex(where: { $0.id == "current-water-ph" }) else {
+            return self
+        }
+
+        updatedCurrent[index] = ProyekMeasurement(
+            id: updatedCurrent[index].id,
+            title: updatedCurrent[index].title,
+            value: waterPH.map(Self.format) ?? Self.unknownValue,
+            isCurrent: updatedCurrent[index].isCurrent
+        )
+        return replacingCurrent(updatedCurrent)
+    }
+
+    private func replacingCurrent(_ current: [ProyekMeasurement]) -> ProyekColorMeasurements {
+        ProyekColorMeasurements(
+            colorConcentrationLimit: colorConcentrationLimit,
+            waterPHLimit: waterPHLimit,
+            initial: initial,
+            current: current
+        )
     }
 
     func concentration(

@@ -14,7 +14,7 @@ struct ProyekView: View {
     var body: some View {
         VStack(spacing: 16) {
             if viewModel.isDeviceConnected {
-                ConnectedDeviceView(measurements: viewModel.initialColorMeasurements)
+                ConnectedDeviceView(measurements: viewModel.measurements)
             } else {
                 EmptyDeviceView()
 
@@ -49,7 +49,7 @@ struct ProyekView: View {
             AddDeviceSheetView {
                 viewModel.markDeviceAsConnected()
                 Task {
-                    await viewModel.readInitialColorMeasurement()
+                    await viewModel.scanData()
                 }
             }
             .presentationDetents([.medium])

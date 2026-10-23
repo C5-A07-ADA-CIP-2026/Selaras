@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ConnectedDeviceView: View {
-    let measurements: ProyekColorMeasurements
+    let measurements: ProyekColorMeasurements?
 
     @State private var fabricAmount = 0
     @State private var isColorSelected = false
@@ -18,7 +18,7 @@ struct ConnectedDeviceView: View {
     private let onSaveProject: () -> Void
 
     init(
-        measurements: ProyekColorMeasurements = .selectedColor,
+        measurements: ProyekColorMeasurements? = nil,
         onScanData: @escaping () -> Void = {},
         onSaveProject: @escaping () -> Void = {}
     ) {
@@ -45,7 +45,7 @@ struct ConnectedDeviceView: View {
                 Text("Warna")
                     .font(.title3.weight(.semibold))
 
-                if isColorSelected {
+                if isColorSelected, let measurements {
                     SelectedColorView(
                         measurements: measurements,
                         isDataScanned: isDataScanned
@@ -150,10 +150,14 @@ private struct MeasurementRow: View {
 }
 
 #Preview {
-    ConnectedDeviceView()
+    ConnectedDeviceView(measurements: .preview)
 }
 
 #Preview("Accessibility size") {
-    ConnectedDeviceView()
+    ConnectedDeviceView(measurements: .preview)
         .dynamicTypeSize(.accessibility5)
+}
+
+private extension ProyekColorMeasurements {
+    static let preview = ProyekColorMeasurements(colorConcentrationLimit: 80, waterPHLimit: 7)
 }

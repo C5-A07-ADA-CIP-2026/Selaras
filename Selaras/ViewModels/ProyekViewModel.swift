@@ -9,10 +9,17 @@ import Foundation
 @MainActor
 final class ProyekViewModel: ObservableObject {
     @Published private(set) var isDeviceConnected = false
-    @Published private(set) var initialColorMeasurements = ProyekColorMeasurements.selectedColor
+    @Published private(set) var selectedResep: Resep?
+    @Published private(set) var measurements: ProyekColorMeasurements?
+    @Published private(set) var isDataScanned = false
+    @Published var jumlahKain = 0
     @Published private(set) var colorMeasurementError: String?
     @Published private(set) var colorConcentrationWarning: String?
     @Published private(set) var waterPHWarning: String?
+
+    /// Latest streamed readings, kept for saving the project (Task 3c).
+    private(set) var latestConcentration: Double?
+    private(set) var latestWaterPH: Double?
 
     private let service: any DeviceConnectionService
     private var measurementTask: Task<Void, Never>?
@@ -31,8 +38,53 @@ final class ProyekViewModel: ObservableObject {
         isDeviceConnected = true
     }
 
-    func setInitialColorMeasurement(_ measurement: ColorMeasurement) {
-        initialVisibleAverage = measurement.visibleAverage
+    /// Selects a recipe and resets everything derived from a previous scan.
+    /// `jumlahKain` is deliberately kept.
+    func pilihResep(_ resep: Resep) {
+        measurementTask?.cancel()
+        measurementTask = nil
+        initialVisibleAverage = nil
+        hasWarnedAboutLowConcentration = false
+        isDataScanned = false
+        colorMeasurementError = nil
+        colorConcentrationWarning = nil
+        waterPHWarning = nil
+        latestConcentration = nil
+        latestWaterPH = nil
+        selectedResep = resep
+        measurements = ProyekColorMeasurements(
+            colorConcentrationLimit: resep.kepekatan,
+            waterPHLimit: resep.batasPH
+        )
+    }
+
+    /// Reads the baseline measurement for the selected recipe and starts streaming updates.
+    /// Does nothing when no recipe is selected.
+    func scanData() async {
+        guard let resep = selectedResep else { return }
+        colorMeasurementError = nil
+        do {
+            let initial = try await service.readInitialColorMeasurement()
+            // The recipe may have changed while the device was being read.
+            guard selectedResep === resep else { return }
+            beginMeasuring(from: initial, resep: resep)
+        } catch {
+            let message = "Gagal membaca data warna dari AS7341: \(error.localizedDescription)"
+            colorMeasurementError = message
+            print("[Proyek] ❌ \(message)")
+        }
+    }
+
+    private func beginMeasuring(from initial: ColorMeasurement, resep: Resep) {
+        initialVisibleAverage = initial.visibleAverage
+        hasWarnedAboutLowConcentration = false
+        measurements = ProyekColorMeasurements(
+            colorConcentrationLimit: resep.kepekatan,
+            waterPHLimit: resep.batasPH,
+            initialWaterPH: initial.waterPH
+        )
+        isDataScanned = true
+
         measurementTask?.cancel()
         measurementTask = Task { [weak self] in
             guard let self else { return }
@@ -43,49 +95,44 @@ final class ProyekViewModel: ObservableObject {
     }
 
     private func updateCurrentColorMeasurement(_ measurement: ColorMeasurement) {
-        guard let initialVisibleAverage, initialVisibleAverage > 0 else { return }
-        initialColorMeasurements = initialColorMeasurements.withCurrentConcentration(
+        guard let measurements, let initialVisibleAverage, initialVisibleAverage > 0 else { return }
+        var updated = measurements.withCurrentConcentration(
             measurement,
             relativeTo: initialVisibleAverage
         )
+        if let waterPH = measurement.waterPH {
+            updated = updated.withCurrentWaterPH(waterPH)
+            latestWaterPH = waterPH
+        }
+        self.measurements = updated
 
-        guard let concentration = initialColorMeasurements.concentration(
+        guard let concentration = updated.concentration(
             for: measurement,
             relativeTo: initialVisibleAverage
         ) else { return }
+        latestConcentration = concentration
 
-        if concentration < ProyekColorMeasurements.colorConcentrationLimit {
+        if concentration < updated.colorConcentrationLimit {
             if !hasWarnedAboutLowConcentration {
-                colorConcentrationWarning = "Kepekatan warna saat ini di bawah 80%. Tambahkan 10 gram pewarna untuk "
-                    + "menjaga kualitas dan ketajaman warna batik."
+                colorConcentrationWarning = "Kepekatan warna saat ini di bawah "
+                    + "\(ProyekColorMeasurements.format(updated.colorConcentrationLimit))%. "
+                    + "Tambahkan 10 gram pewarna untuk menjaga kualitas dan ketajaman warna batik."
                 hasWarnedAboutLowConcentration = true
             }
         } else {
             hasWarnedAboutLowConcentration = false
         }
 
-        updateWaterPHWarning(measurement.waterPH)
+        updateWaterPHWarning(measurement.waterPH, limit: updated.waterPHLimit)
     }
 
-    private func updateWaterPHWarning(_ waterPH: Double?) {
+    private func updateWaterPHWarning(_ waterPH: Double?, limit: Double) {
         guard let waterPH else { return }
-        if waterPH < ProyekColorMeasurements.waterPHAlertLimit {
-            waterPHWarning = "pH air saat ini di bawah 7. Tambahkan 10 gram soda abu untuk menjaga kualitas "
-                + "dan ketajaman warna batik."
+        if waterPH < limit {
+            waterPHWarning = "pH air saat ini di bawah \(ProyekColorMeasurements.format(limit)). "
+                + "Tambahkan 10 gram soda abu untuk menjaga kualitas dan ketajaman warna batik."
         } else {
             waterPHWarning = nil
-        }
-    }
-
-    func readInitialColorMeasurement() async {
-        colorMeasurementError = nil
-        do {
-            let measurement = try await service.readInitialColorMeasurement()
-            setInitialColorMeasurement(measurement)
-        } catch {
-            let message = "Gagal membaca data warna dari AS7341: \(error.localizedDescription)"
-            colorMeasurementError = message
-            print("[Proyek] ❌ \(message)")
         }
     }
 
