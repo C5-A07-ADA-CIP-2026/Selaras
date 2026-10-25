@@ -14,37 +14,65 @@ enum ProyekStatus: String, Codable {
 @Model
 final class Proyek {
     var id: UUID
-    var nama: String = ""
-    var status: ProyekStatus = ProyekStatus.aktif
-    var perangkatNama: String = ""
+    /// Stored optional: rows saved before these fields existed come out of the store with NULL.
+    var namaTersimpan: String?
+    var statusTersimpan: ProyekStatus?
+    var perangkatNamaTersimpan: String?
+    var pewarnaTersimpan: [Bahan]?
+    var zatPembantuTersimpan: [Bahan]?
     var tanggal: Date
     var namaWarna: String
     var catatan: String
     var warnaHex: String
     var batasKepekatan: Double
     var batasPH: Double
-    var pewarna: [Bahan] = []
-    var zatPembantu: [Bahan] = []
     var jumlahKain: Int
     var kepekatanAkhir: Double?
     var phAkhir: Double?
     @Relationship(deleteRule: .nullify) var resep: Resep?
 
+    /// A project from before the lifecycle existed was saved finished, so it reads as inactive.
+    var status: ProyekStatus {
+        get { statusTersimpan ?? .nonaktif }
+        set { statusTersimpan = newValue }
+    }
+
+    /// Falls back to the color name for projects saved without a name.
+    var nama: String {
+        get { namaTersimpan ?? namaWarna }
+        set { namaTersimpan = newValue }
+    }
+
+    var perangkatNama: String {
+        get { perangkatNamaTersimpan ?? "" }
+        set { perangkatNamaTersimpan = newValue }
+    }
+
+    var pewarna: [Bahan] {
+        get { pewarnaTersimpan ?? [] }
+        set { pewarnaTersimpan = newValue }
+    }
+
+    var zatPembantu: [Bahan] {
+        get { zatPembantuTersimpan ?? [] }
+        set { zatPembantuTersimpan = newValue }
+    }
+
     /// A new, active project. Name, colour, limits and ingredients are copied from `resep`,
     /// so the project stays correct when the recipe is edited or deleted.
     init(nama: String, perangkatNama: String, resep: Resep, jumlahKain: Int, tanggal: Date = .now) {
         id = UUID()
-        self.nama = nama
-        status = .aktif
-        self.perangkatNama = perangkatNama
+        namaTersimpan = nama
+        statusTersimpan = .aktif
+        perangkatNamaTersimpan = perangkatNama
         self.tanggal = tanggal
         namaWarna = resep.namaWarna
         catatan = resep.catatan
         warnaHex = resep.warnaHex
         batasKepekatan = resep.kepekatan
         batasPH = resep.batasPH
-        pewarna = resep.pewarna
-        zatPembantu = resep.zatPembantu
+        pewarnaTersimpan = resep.pewarna
+        zatPembantuTersimpan = resep.zatPembantu
         self.jumlahKain = jumlahKain
         self.resep = resep
     }

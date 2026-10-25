@@ -6,15 +6,19 @@
 import SwiftUI
 
 struct ProyekRowView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .headline) private var ukuranSwatch = 44.0
 
     let proyek: Proyek
 
     var body: some View {
-        HStack(spacing: 12) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 12))
+        layout {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(hex: proyek.warnaHex))
-                .frame(width: ukuranSwatch, height: ukuranSwatch)
+                .frame(width: min(ukuranSwatch, 64), height: min(ukuranSwatch, 64))
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {

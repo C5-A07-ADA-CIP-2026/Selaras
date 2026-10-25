@@ -2,9 +2,8 @@
 
 Aplikasi iOS yang dikerjakan oleh tim 3 orang. Halamannya:
 
-- **Resep**: halaman utama (tab pertama), daftar resep warna.
-- **Proyek**: tab kedua. Tombol di kanan atas membuka **Riwayat**.
-- **Riwayat**: dibuka dari Proyek, bukan tab sendiri.
+- **Warna** (kode: `Resep`): halaman utama (tab pertama), daftar resep warna.
+- **Proyek**: tab kedua. Daftar proyek **Aktif** dan **Nonaktif**; tombol + di kanan atas menambah proyek. Proyek nonaktif (sudah selesai dipindai) menggantikan halaman Riwayat.
 
 ## Tim
 
@@ -12,7 +11,7 @@ Aplikasi iOS yang dikerjakan oleh tim 3 orang. Halamannya:
 |------|-------|--------|
 | Resep | Dina | `feat/resep` |
 | Proyek | Hana | `feat/proyek` |
-| Riwayat, dan test untuk Proyek | Fany | `feat/riwayat` |
+| Proyek nonaktif (dulu Riwayat), dan test untuk Proyek | Fany | `feat/riwayat` |
 
 ## Setup
 
@@ -30,26 +29,25 @@ open Selaras.xcodeproj
 ```
 Selaras/
 ├── SelarasApp.swift                 ModelContainer SwiftData
-├── ContentView.swift                TabView (Resep, Proyek)
+├── ContentView.swift                TabView (Warna, Proyek)
 ├── AppTab.swift
 ├── Extensions/                      Color+hex, String
 ├── Shared/                          SelarasSchema (entitas SwiftData), ResepRowView
 ├── Views/
 │   ├── Components/                  komponen form bersama
 │   ├── Resep/                       ResepView, HalamanTambahResep
-│   ├── Proyek/                      ProyekView, sheet perangkat dan pilih resep
-│   └── Riwayat/RiwayatView.swift
-├── ViewModels/                      ResepViewModel, ProyekViewModel
-└── Models/                          Resep, Proyek, RiwayatProyek, koneksi perangkat BLE
+│   └── Proyek/                      daftar, detail, sheet tambah proyek, sheet perangkat
+├── ViewModels/                      Resep, TambahProyek, ProyekDetail, DeviceList
+└── Models/                          Resep, Proyek, koneksi perangkat BLE
 SelarasTests/
 ├── ViewModels/                      tes ViewModel
 ├── Models/                          tes Model
 └── Support/                         helper tes (container in-memory, stub perangkat)
 ```
 
-### Alur data: Resep → Proyek → Riwayat
+### Alur data: Warna → Proyek
 
-Ketiga halaman berbagi satu penyimpanan SwiftData (`Selaras/Shared/SelarasSchema.swift`, entitas `Resep` dan `Proyek`). Resep disimpan lewat form "Tambah Warna" di tab Resep. Di tab Proyek, pengguna memilih satu Resep dan batas kepekatan serta pH-nya dipakai proyek. "Pindai Data" mengambil pembacaan sensor sebagai baseline 100%, lalu "Simpan Proyek" menyimpan snapshot `Proyek`. Riwayat menampilkan `Proyek` yang tersimpan, terbaru di atas. Karena snapshot, entri Riwayat tetap ada walau Resep-nya dihapus.
+Tab Warna dan Proyek berbagi satu penyimpanan SwiftData (`Selaras/Shared/SelarasSchema.swift`, entitas `Resep` dan `Proyek`). Resep disimpan lewat form "Tambah Warna". Di tab Proyek, tombol + membuka sheet "Tambahkan Proyek": isi nama, pilih perangkat dari daftar hasil pindai Bluetooth ("Hubungkan"), pilih satu Resep (warna, batas kepekatan dan pH, serta bahannya disalin), dan jumlah kain. Proyek baru berstatus **Aktif**. Di halaman detail, "Mulai Pindai" mengambil pembacaan sensor sebagai baseline 100%, lalu "Selesaikan Proyek" menyimpan hasil akhir dan memindahkannya ke **Nonaktif**. Karena snapshot, proyek tetap ada walau Resep-nya dihapus. Proyek lama yang disimpan sebelum ada status dibaca sebagai Nonaktif.
 
 Arsitektur MVVM satu folder per layer, test-first dengan Swift Testing: tulis tes dulu, lalu ViewModel dan Model-nya. Komponen yang dipakai bersama taruh di `Selaras/Shared/`. Detail aturan ada di [AGENTS.md](AGENTS.md).
 

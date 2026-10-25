@@ -74,6 +74,22 @@ struct ProyekLifecycleTests {
         #expect(proyek.phAkhir == 6.5)
     }
 
+    @Test("A project saved before these fields existed is an inactive history entry named after its color")
+    func legacyProyekReadsAsInactiveHistory() {
+        let proyek = Proyek(nama: "A", perangkatNama: "ESP 32", resep: makeResep(), jumlahKain: 1)
+        proyek.namaTersimpan = nil
+        proyek.statusTersimpan = nil
+        proyek.perangkatNamaTersimpan = nil
+        proyek.pewarnaTersimpan = nil
+        proyek.zatPembantuTersimpan = nil
+
+        #expect(proyek.nama == "Merah Marun")
+        #expect(proyek.status == .nonaktif)
+        #expect(proyek.perangkatNama == "")
+        #expect(proyek.pewarna.isEmpty)
+        #expect(proyek.zatPembantu.isEmpty)
+    }
+
     @Test("Status, name, device and ingredients survive a save and fetch")
     func lifecyclePersists() throws {
         let context = try makeTestContext()
