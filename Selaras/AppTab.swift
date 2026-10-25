@@ -3,10 +3,10 @@
 //  Selaras
 //
 
-/// Top-level sections shown in the tab bar. The recipe list is shown to users as "Warna".
+/// Top-level sections shown in the tab bar. Proyek comes first; the recipe list is shown to users as "Warna".
 enum AppTab: CaseIterable {
-    case resep
     case proyek
+    case resep
 
     var title: String {
         switch self {

@@ -2,8 +2,8 @@
 
 Aplikasi iOS yang dikerjakan oleh tim 3 orang. Halamannya:
 
-- **Warna** (kode: `Resep`): halaman utama (tab pertama), daftar resep warna.
-- **Proyek**: tab kedua. Daftar proyek **Aktif** dan **Nonaktif**; tombol + di kanan atas menambah proyek. Proyek nonaktif (sudah selesai dipindai) menggantikan halaman Riwayat.
+- **Proyek**: halaman utama (tab pertama). Daftar proyek **Aktif** dan **Nonaktif**; tombol + di kanan atas menambah proyek. Proyek nonaktif (sudah selesai dipindai) menggantikan halaman Riwayat.
+- **Warna** (kode: `Resep`): tab kedua, daftar resep warna.
 
 ## Tim
 
@@ -29,7 +29,7 @@ open Selaras.xcodeproj
 ```
 Selaras/
 ├── SelarasApp.swift                 ModelContainer SwiftData
-├── ContentView.swift                TabView (Warna, Proyek)
+├── ContentView.swift                TabView (Proyek, Warna)
 ├── AppTab.swift
 ├── Extensions/                      Color+hex, String
 ├── Shared/                          SelarasSchema (entitas SwiftData), ResepRowView

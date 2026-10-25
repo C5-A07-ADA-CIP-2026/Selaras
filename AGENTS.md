@@ -1,6 +1,6 @@
 # Selaras
 
-An iOS app built by a three-person team. Tabs: **Warna** (the recipe list, code name `Resep`, the home tab) and **Proyek** (projects, second tab). Proyek lists active and inactive projects; inactive ones are finished projects and replace the old Riwayat page.
+An iOS app built by a three-person team. Tabs: **Proyek** (projects, the home tab) and **Warna** (the recipe list, code name `Resep`, second tab). Proyek lists active and inactive projects; inactive ones are finished projects and replace the old Riwayat page.
 
 ## Team
 

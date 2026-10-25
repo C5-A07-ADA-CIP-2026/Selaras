@@ -8,12 +8,12 @@ import Testing
 
 @MainActor
 struct AppTabTests {
-    @Test func resepIsTheFirstTab() {
-        #expect(AppTab.allCases.first == .resep)
+    @Test func proyekIsTheFirstTab() {
+        #expect(AppTab.allCases.first == .proyek)
     }
 
-    @Test func proyekFollowsResep() {
-        #expect(AppTab.allCases == [.resep, .proyek])
+    @Test func resepFollowsProyek() {
+        #expect(AppTab.allCases == [.proyek, .resep])
     }
 
     @Test func tabsHaveTitles() {
