@@ -1,0 +1,138 @@
+//
+//  ProyekLifecycleTests.swift
+//  SelarasTests
+//
+
+import Foundation
+@testable import Selaras
+import SwiftData
+import Testing
+
+@Suite("Proyek lifecycle")
+@MainActor
+struct ProyekLifecycleTests {
+    private func makeResep() -> Resep {
+        Resep(
+            namaWarna: "Merah Marun", catatan: "Seragam Bu Dina", warnaHex: "#B50202",
+            air: 1000, kepekatan: 80, batasPH: 7,
+            pewarna: [Bahan(kode: "Naphtol AS", gram: 5)],
+            zatPembantu: [Bahan(kode: "Kostik", gram: 2)]
+        )
+    }
+
+    @Test("A new project is active, unscanned and snapshots the recipe")
+    func newProyekIsActiveWithSnapshot() {
+        let resep = makeResep()
+
+        let proyek = Proyek(nama: "Seragam RT 5", perangkatNama: "ESP 32", resep: resep, jumlahKain: 3)
+
+        #expect(proyek.nama == "Seragam RT 5")
+        #expect(proyek.perangkatNama == "ESP 32")
+        #expect(proyek.status == .aktif)
+        #expect(proyek.jumlahKain == 3)
+        #expect(proyek.namaWarna == "Merah Marun")
+        #expect(proyek.warnaHex == "#B50202")
+        #expect(proyek.batasKepekatan == 80)
+        #expect(proyek.batasPH == 7)
+        #expect(proyek.pewarna == [Bahan(kode: "Naphtol AS", gram: 5)])
+        #expect(proyek.zatPembantu == [Bahan(kode: "Kostik", gram: 2)])
+        #expect(proyek.kepekatanAkhir == nil)
+        #expect(proyek.phAkhir == nil)
+        #expect(proyek.resep === resep)
+    }
+
+    @Test("Finishing stores the final readings and makes the project inactive")
+    func selesaikanMakesProyekInactive() {
+        let proyek = Proyek(nama: "A", perangkatNama: "ESP 32", resep: makeResep(), jumlahKain: 1)
+
+        proyek.selesaikan(kepekatanAkhir: 85, phAkhir: 6.5)
+
+        #expect(proyek.status == .nonaktif)
+        #expect(proyek.kepekatanAkhir == 85)
+        #expect(proyek.phAkhir == 6.5)
+    }
+
+    @Test("Final readings stay nil, never 0, when the sensor sent none")
+    func selesaikanKeepsMissingReadingsNil() {
+        let proyek = Proyek(nama: "A", perangkatNama: "ESP 32", resep: makeResep(), jumlahKain: 1)
+
+        proyek.selesaikan(kepekatanAkhir: nil, phAkhir: nil)
+
+        #expect(proyek.status == .nonaktif)
+        #expect(proyek.kepekatanAkhir == nil)
+        #expect(proyek.phAkhir == nil)
+    }
+
+    @Test("Finishing an inactive project again changes nothing")
+    func selesaikanIsIdempotent() {
+        let proyek = Proyek(nama: "A", perangkatNama: "ESP 32", resep: makeResep(), jumlahKain: 1)
+        proyek.selesaikan(kepekatanAkhir: 85, phAkhir: 6.5)
+
+        proyek.selesaikan(kepekatanAkhir: 10, phAkhir: 2)
+
+        #expect(proyek.kepekatanAkhir == 85)
+        #expect(proyek.phAkhir == 6.5)
+    }
+
+    @Test("Status, name, device and ingredients survive a save and fetch")
+    func lifecyclePersists() throws {
+        let context = try makeTestContext()
+        let proyek = Proyek(nama: "Seragam RT 5", perangkatNama: "ESP 32", resep: makeResep(), jumlahKain: 2)
+        proyek.selesaikan(kepekatanAkhir: 90, phAkhir: 7)
+        try context.insertAndSave(proyek)
+
+        let hasil = try #require(try context.fetch(FetchDescriptor<Proyek>()).first)
+
+        #expect(hasil.nama == "Seragam RT 5")
+        #expect(hasil.perangkatNama == "ESP 32")
+        #expect(hasil.status == .nonaktif)
+        #expect(hasil.pewarna == [Bahan(kode: "Naphtol AS", gram: 5)])
+        #expect(hasil.zatPembantu == [Bahan(kode: "Kostik", gram: 2)])
+    }
+}
+
+@Suite("ProyekDaftar")
+@MainActor
+struct ProyekDaftarTests {
+    private func makeProyek(_ nama: String, daysAgo: Double, selesai: Bool = false) -> Proyek {
+        let resep = Resep.sample()
+        let proyek = Proyek(
+            nama: nama, perangkatNama: "ESP 32", resep: resep, jumlahKain: 1,
+            tanggal: Date(timeIntervalSince1970: 1_800_000_000 - daysAgo * 86400)
+        )
+        if selesai {
+            proyek.selesaikan(kepekatanAkhir: 90, phAkhir: 7)
+        }
+        return proyek
+    }
+
+    @Test("Splits active and inactive projects, newest first")
+    func splitsByStatusNewestFirst() {
+        let lama = makeProyek("Lama", daysAgo: 5)
+        let baru = makeProyek("Baru", daysAgo: 1)
+        let selesaiLama = makeProyek("Selesai lama", daysAgo: 9, selesai: true)
+        let selesaiBaru = makeProyek("Selesai baru", daysAgo: 3, selesai: true)
+
+        let daftar = ProyekDaftar([lama, selesaiLama, baru, selesaiBaru])
+
+        #expect(daftar.aktif.map(\.nama) == ["Baru", "Lama"])
+        #expect(daftar.nonaktif.map(\.nama) == ["Selesai baru", "Selesai lama"])
+    }
+
+    @Test("An empty list is empty")
+    func emptyList() {
+        let daftar = ProyekDaftar([])
+
+        #expect(daftar.isEmpty)
+        #expect(daftar.aktif.isEmpty)
+        #expect(daftar.nonaktif.isEmpty)
+    }
+
+    @Test("A list with only inactive projects is not empty")
+    func onlyInactiveIsNotEmpty() {
+        let daftar = ProyekDaftar([makeProyek("Selesai", daysAgo: 1, selesai: true)])
+
+        #expect(!daftar.isEmpty)
+        #expect(daftar.aktif.isEmpty)
+    }
+}

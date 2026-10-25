@@ -6,37 +6,84 @@
 import Foundation
 import SwiftData
 
+enum ProyekStatus: String, Codable {
+    case aktif
+    case nonaktif
+}
+
 @Model
 final class Proyek {
     var id: UUID
+    var nama: String = ""
+    var status: ProyekStatus = ProyekStatus.aktif
+    var perangkatNama: String = ""
     var tanggal: Date
     var namaWarna: String
     var catatan: String
     var warnaHex: String
     var batasKepekatan: Double
     var batasPH: Double
+    var pewarna: [Bahan] = []
+    var zatPembantu: [Bahan] = []
     var jumlahKain: Int
     var kepekatanAkhir: Double?
     var phAkhir: Double?
     @Relationship(deleteRule: .nullify) var resep: Resep?
 
-    // swiftlint:disable opening_brace
-    init(resep: Resep, jumlahKain: Int, kepekatanAkhir: Double?, phAkhir: Double?,
-         tanggal: Date = .now)
-    {
+    /// A new, active project. Name, colour, limits and ingredients are copied from `resep`,
+    /// so the project stays correct when the recipe is edited or deleted.
+    init(nama: String, perangkatNama: String, resep: Resep, jumlahKain: Int, tanggal: Date = .now) {
         id = UUID()
+        self.nama = nama
+        status = .aktif
+        self.perangkatNama = perangkatNama
         self.tanggal = tanggal
         namaWarna = resep.namaWarna
         catatan = resep.catatan
         warnaHex = resep.warnaHex
         batasKepekatan = resep.kepekatan
         batasPH = resep.batasPH
+        pewarna = resep.pewarna
+        zatPembantu = resep.zatPembantu
         self.jumlahKain = jumlahKain
-        self.kepekatanAkhir = kepekatanAkhir
-        self.phAkhir = phAkhir
         self.resep = resep
     }
+
+    // swiftlint:disable opening_brace
+    /// Legacy initializer for a project that is saved already finished. Removed together with the old Proyek screen.
+    convenience init(resep: Resep, jumlahKain: Int, kepekatanAkhir: Double?, phAkhir: Double?,
+                     tanggal: Date = .now)
+    {
+        self.init(nama: resep.namaWarna, perangkatNama: "ESP 32", resep: resep,
+                  jumlahKain: jumlahKain, tanggal: tanggal)
+        selesaikan(kepekatanAkhir: kepekatanAkhir, phAkhir: phAkhir)
+    }
+
     // swiftlint:enable opening_brace
+
+    /// Stores the final readings and moves the project to the inactive list. Does nothing when already finished.
+    func selesaikan(kepekatanAkhir: Double?, phAkhir: Double?) {
+        guard status == .aktif else { return }
+        self.kepekatanAkhir = kepekatanAkhir
+        self.phAkhir = phAkhir
+        status = .nonaktif
+    }
+}
+
+/// Projects split for the Proyek list: active first, both newest on top.
+struct ProyekDaftar {
+    let aktif: [Proyek]
+    let nonaktif: [Proyek]
+
+    init(_ semua: [Proyek]) {
+        let terbaruDulu = semua.sorted { $0.tanggal > $1.tanggal }
+        aktif = terbaruDulu.filter { $0.status == .aktif }
+        nonaktif = terbaruDulu.filter { $0.status == .nonaktif }
+    }
+
+    var isEmpty: Bool {
+        aktif.isEmpty && nonaktif.isEmpty
+    }
 }
 
 struct ProyekMeasurement: Identifiable, Equatable {
