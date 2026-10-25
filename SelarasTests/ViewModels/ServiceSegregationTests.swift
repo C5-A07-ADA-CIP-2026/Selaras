@@ -3,18 +3,25 @@
 //  SelarasTests
 //
 
+import Foundation
 @testable import Selaras
 import Testing
 
 /// Conforms only to `DeviceConnecting`: it cannot read colors.
 private struct ConnectingOnlyService: DeviceConnecting {
-    var isDeviceFound = true
+    var devices = [DiscoveredDevice(id: UUID(), nama: "ESP 32")]
 
-    func discoverDevice() async throws -> Bool {
-        isDeviceFound
+    func scanDevices() -> AsyncThrowingStream<DiscoveredDevice, any Error> {
+        let devices = devices
+        return AsyncThrowingStream { continuation in
+            for device in devices {
+                continuation.yield(device)
+            }
+            continuation.finish()
+        }
     }
 
-    func connectToDevice() async throws {}
+    func connect(to _: DiscoveredDevice) async throws {}
 }
 
 /// Conforms only to `ColorMeasurementSource`: it cannot connect.
@@ -33,32 +40,23 @@ private struct MeasurementOnlySource: ColorMeasurementSource {
 
 @MainActor
 struct ServiceSegregationTests {
-    @Test("AddDeviceViewModel needs only a DeviceConnecting service")
-    func addDeviceWorksWithConnectingOnlyService() async {
-        let viewModel = AddDeviceViewModel(service: ConnectingOnlyService())
+    @Test("DeviceListViewModel needs only a DeviceConnecting service")
+    func deviceListWorksWithConnectingOnlyService() async throws {
+        let viewModel = DeviceListViewModel(service: ConnectingOnlyService())
 
-        await viewModel.discoverDevice()
-        #expect(viewModel.state == .found)
+        await viewModel.scan()
+        #expect(viewModel.devices.count == 1)
 
-        await viewModel.connectDevice()
-        #expect(viewModel.state == .connected)
+        try await viewModel.connect(#require(viewModel.devices.first))
+        #expect(viewModel.connectedDevice?.nama == "ESP 32")
     }
 
-    @Test("AddDeviceViewModel fails when the connecting-only service finds nothing")
-    func addDeviceFailsWhenNothingFound() async {
-        let viewModel = AddDeviceViewModel(service: ConnectingOnlyService(isDeviceFound: false))
+    @Test("ProyekDetailViewModel needs only a ColorMeasurementSource")
+    func proyekDetailWorksWithMeasurementOnlySource() async {
+        let proyek = Proyek(nama: "A", perangkatNama: "ESP 32", resep: .sample(batasKepekatan: 90), jumlahKain: 1)
+        let viewModel = ProyekDetailViewModel(proyek: proyek, service: MeasurementOnlySource())
 
-        await viewModel.discoverDevice()
-
-        #expect(viewModel.state == .failed)
-    }
-
-    @Test("ProyekViewModel needs only a ColorMeasurementSource")
-    func proyekWorksWithMeasurementOnlySource() async {
-        let viewModel = ProyekViewModel(service: MeasurementOnlySource())
-        viewModel.pilihResep(.sample(batasKepekatan: 90, batasPH: 7))
-
-        await viewModel.scanData()
+        await viewModel.mulaiPindai()
         let didStream = await waitUntil { viewModel.latestConcentration == 80 }
 
         #expect(viewModel.isDataScanned)

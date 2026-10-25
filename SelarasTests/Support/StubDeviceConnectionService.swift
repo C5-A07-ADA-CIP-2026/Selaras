@@ -37,11 +37,41 @@ struct StubDeviceConnectionService: DeviceConnectionService {
     /// Counts every `readInitialColorMeasurement` call.
     let readCounter = ReadCounter()
 
-    func discoverDevice() async throws -> Bool {
-        true
+    /// Devices `scanDevices` reports, then it finishes (with `scanError` when set).
+    var devices: [DiscoveredDevice] = []
+    var scanError: (any Error)?
+    /// When set, `scanDevices` returns this stream instead of `devices`.
+    var liveDevices: AsyncThrowingStream<DiscoveredDevice, any Error>?
+    /// When set, `connect(to:)` throws this error.
+    var connectError: (any Error)?
+    /// When true, `connect(to:)` suspends until the task is cancelled.
+    var connectSuspends = false
+    /// Counts every `connect(to:)` call.
+    let connectCounter = ReadCounter()
+
+    func scanDevices() -> AsyncThrowingStream<DiscoveredDevice, any Error> {
+        if let liveDevices {
+            return liveDevices
+        }
+        let devices = devices
+        let scanError = scanError
+        return AsyncThrowingStream { continuation in
+            for device in devices {
+                continuation.yield(device)
+            }
+            continuation.finish(throwing: scanError)
+        }
     }
 
-    func connectToDevice() async throws {}
+    func connect(to _: DiscoveredDevice) async throws {
+        _ = connectCounter.increment()
+        if connectSuspends {
+            try await Task.sleep(for: .seconds(60))
+        }
+        if let connectError {
+            throw connectError
+        }
+    }
 
     func readInitialColorMeasurement() async throws -> ColorMeasurement {
         let readNumber = readCounter.increment()

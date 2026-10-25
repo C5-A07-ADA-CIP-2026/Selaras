@@ -49,24 +49,19 @@ final class Proyek {
         self.resep = resep
     }
 
-    // swiftlint:disable opening_brace
-    /// Legacy initializer for a project that is saved already finished. Removed together with the old Proyek screen.
-    convenience init(resep: Resep, jumlahKain: Int, kepekatanAkhir: Double?, phAkhir: Double?,
-                     tanggal: Date = .now)
-    {
-        self.init(nama: resep.namaWarna, perangkatNama: "ESP 32", resep: resep,
-                  jumlahKain: jumlahKain, tanggal: tanggal)
-        selesaikan(kepekatanAkhir: kepekatanAkhir, phAkhir: phAkhir)
-    }
-
-    // swiftlint:enable opening_brace
-
     /// Stores the final readings and moves the project to the inactive list. Does nothing when already finished.
     func selesaikan(kepekatanAkhir: Double?, phAkhir: Double?) {
         guard status == .aktif else { return }
         self.kepekatanAkhir = kepekatanAkhir
         self.phAkhir = phAkhir
         status = .nonaktif
+    }
+
+    /// Undoes `selesaikan` when the change could not be saved.
+    func batalkanSelesai() {
+        kepekatanAkhir = nil
+        phAkhir = nil
+        status = .aktif
     }
 }
 

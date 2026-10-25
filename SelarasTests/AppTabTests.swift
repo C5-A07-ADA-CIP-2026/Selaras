@@ -17,7 +17,12 @@ struct AppTabTests {
     }
 
     @Test func tabsHaveTitles() {
-        #expect(AppTab.resep.title == "Resep")
+        #expect(AppTab.resep.title == "Warna")
         #expect(AppTab.proyek.title == "Proyek")
+    }
+
+    @Test func tabsHaveIcons() {
+        #expect(AppTab.resep.systemImage == "book")
+        #expect(AppTab.proyek.systemImage == "folder")
     }
 }

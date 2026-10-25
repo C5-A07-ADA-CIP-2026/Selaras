@@ -15,7 +15,7 @@ struct ProyekEntityTests {
     func proyekCopiesRecipeSnapshot() {
         let resep = Resep.sample(namaWarna: "Merah Marun", warnaHex: "#B50202")
 
-        let proyek = Proyek(resep: resep, jumlahKain: 3, kepekatanAkhir: 85, phAkhir: 6.5)
+        let proyek = Proyek(nama: "A", perangkatNama: "ESP 32", resep: resep, jumlahKain: 3)
 
         #expect(proyek.namaWarna == "Merah Marun")
         #expect(proyek.warnaHex == "#B50202")
@@ -29,7 +29,7 @@ struct ProyekEntityTests {
     func deletingResepKeepsProyekSnapshot() throws {
         let context = try makeTestContext()
         let resep = Resep.sample(namaWarna: "Merah Marun", warnaHex: "#B50202")
-        let proyek = Proyek(resep: resep, jumlahKain: 3, kepekatanAkhir: 85, phAkhir: 6.5)
+        let proyek = Proyek(nama: "A", perangkatNama: "ESP 32", resep: resep, jumlahKain: 3)
         context.insert(resep)
         context.insert(proyek)
         try context.save()

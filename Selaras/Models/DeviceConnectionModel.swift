@@ -56,18 +56,18 @@ struct ColorMeasurement: Equatable, Decodable, Sendable {
     }
 }
 
-enum DeviceConnectionState: Equatable {
-    case searching
-    case found
-    case connecting
-    case connected
-    case failed
+/// A Selaras device found while scanning.
+struct DiscoveredDevice: Identifiable, Hashable, Sendable {
+    let id: UUID
+    let nama: String
 }
 
-/// Finds and connects to the device. This is all `AddDeviceViewModel` needs.
+/// Finds and connects to devices. This is all `DeviceListViewModel` needs.
 protocol DeviceConnecting: Sendable {
-    func discoverDevice() async throws -> Bool
-    func connectToDevice() async throws
+    /// Emits each device as it is found and finishes when the scan ends.
+    func scanDevices() -> AsyncThrowingStream<DiscoveredDevice, any Error>
+    /// Connects to `device`. Cancelling the calling task abandons the attempt with `CancellationError`.
+    func connect(to device: DiscoveredDevice) async throws
 }
 
 /// Reads color measurements from a connected device. This is all `ProyekViewModel` needs.
@@ -80,28 +80,45 @@ protocol ColorMeasurementSource: Sendable {
 protocol DeviceConnectionService: DeviceConnecting, ColorMeasurementSource, Sendable {}
 
 struct SimulatedDeviceConnectionService: DeviceConnectionService {
+    static let devices = [
+        DiscoveredDevice(id: UUID(uuidString: "00000000-0000-0000-0000-0000000000E1")!, nama: "ESP 32"),
+        DiscoveredDevice(id: UUID(uuidString: "00000000-0000-0000-0000-0000000000E2")!, nama: "ESP 32-B"),
+        DiscoveredDevice(id: UUID(uuidString: "00000000-0000-0000-0000-0000000000E3")!, nama: "ESP 32-C"),
+    ]
+
     let discoveryDelay: Duration
     let connectionDelay: Duration
 
     init(
-        discoveryDelay: Duration = .seconds(2),
+        discoveryDelay: Duration = .seconds(1),
         connectionDelay: Duration = .seconds(2)
     ) {
         self.discoveryDelay = discoveryDelay
         self.connectionDelay = connectionDelay
     }
 
-    func discoverDevice() async throws -> Bool {
-        print("[Simulator] 🔍 Mensimulasikan pencarian perangkat ESP32...")
-        try await Task.sleep(for: discoveryDelay)
-        print("[Simulator] ✨ Perangkat simulasi ESP32 ditemukan.")
-        return true
+    func scanDevices() -> AsyncThrowingStream<DiscoveredDevice, any Error> {
+        let delay = discoveryDelay
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                print("[Simulator] 🔍 Mensimulasikan pencarian perangkat ESP32...")
+                for device in Self.devices {
+                    try? await Task.sleep(for: delay)
+                    if Task.isCancelled {
+                        break
+                    }
+                    continuation.yield(device)
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
-    func connectToDevice() async throws {
-        print("[Simulator] ⏳ Mensimulasikan koneksi ke ESP32...")
+    func connect(to device: DiscoveredDevice) async throws {
+        print("[Simulator] ⏳ Mensimulasikan koneksi ke \(device.nama)...")
         try await Task.sleep(for: connectionDelay)
-        print("[Simulator] ✅ Perangkat simulasi ESP32 terhubung.")
+        print("[Simulator] ✅ Perangkat simulasi \(device.nama) terhubung.")
     }
 
     func readInitialColorMeasurement() async throws -> ColorMeasurement {
