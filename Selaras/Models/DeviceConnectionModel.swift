@@ -32,9 +32,14 @@ struct ColorMeasurement: Equatable, Decodable, Sendable {
         waterPH = try container.decodeIfPresent(Double.self, forKey: .waterPH)
     }
 
+    /// Percentage of `baseline`; nil when there is no positive baseline to compare with.
+    func concentration(relativeTo baseline: Double) -> Double? {
+        guard baseline > 0 else { return nil }
+        return (visibleAverage / baseline) * 100
+    }
+
     func formattedConcentration(relativeTo baseline: Double) -> String {
-        guard baseline > 0 else { return "0.0%" }
-        let percentage = (visibleAverage / baseline) * 100
+        guard let percentage = concentration(relativeTo: baseline) else { return "0.0%" }
         return String(
             format: "%.1f%%",
             locale: Locale(identifier: "en_US_POSIX"),

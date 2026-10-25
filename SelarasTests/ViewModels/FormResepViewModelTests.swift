@@ -50,4 +50,37 @@ struct FormResepViewModelTests {
         let hasil = try context.fetch(FetchDescriptor<Resep>())
         #expect(hasil.count == 0)
     }
+
+    @Test("A failed save rethrows and removes the inserted Resep")
+    func simpanRethrowsAndDeletesResepOnSaveFailure() throws {
+        let persistence = RecordingModelPersistence()
+        persistence.saveError = StubSaveError()
+        let viewModel = FormResepViewModel()
+        viewModel.namaWarna = "Merah Marun"
+        viewModel.namaCatatan = "Seragam Bu Dina"
+        viewModel.warnaDipilih = Color(hex: "#B50202")
+        viewModel.ukuranAir = 200
+        viewModel.kepekatan = 80
+        viewModel.batasPH = 7
+        viewModel.pewarna = [BahanInput(kode: "N-1", gram: 5)]
+        viewModel.zatPembantu = [BahanInput(kode: "Kostik", gram: 2)]
+
+        #expect(throws: StubSaveError.self) {
+            try viewModel.simpan(context: persistence)
+        }
+
+        #expect(persistence.events == [.insert, .save, .delete])
+        let inserted = try #require(persistence.insertedModels.first as? Resep)
+        #expect(inserted.namaWarna == "Merah Marun")
+        #expect(isSameModel(persistence.deletedModels[0], inserted))
+    }
+
+    @Test("An incomplete form touches nothing in the persistence")
+    func simpanIncompleteFormDoesNotTouchPersistence() throws {
+        let persistence = RecordingModelPersistence()
+
+        try FormResepViewModel().simpan(context: persistence)
+
+        #expect(persistence.events.isEmpty)
+    }
 }

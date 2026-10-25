@@ -28,7 +28,7 @@ final class ProyekViewModel: ObservableObject {
     private let service: any ColorMeasurementSource
     private var measurementTask: Task<Void, Never>?
     private var initialVisibleAverage: Double?
-    private var hasWarnedAboutLowConcentration = false
+    private var warningTracker = MeasurementWarningTracker()
     /// Identifies the scan that currently owns `isScanning`, so a superseded scan cannot clear it.
     private var activeScan: UUID?
 
@@ -47,7 +47,7 @@ final class ProyekViewModel: ObservableObject {
         measurementTask = nil
         endScanning()
         initialVisibleAverage = nil
-        hasWarnedAboutLowConcentration = false
+        warningTracker.reset()
         isDataScanned = false
         colorMeasurementError = nil
         colorConcentrationWarning = nil
@@ -98,7 +98,7 @@ final class ProyekViewModel: ObservableObject {
 
     private func beginMeasuring(from initial: ColorMeasurement, resep: Resep) {
         initialVisibleAverage = initial.visibleAverage
-        hasWarnedAboutLowConcentration = false
+        warningTracker.reset()
         measurements = ProyekColorMeasurements(
             colorConcentrationLimit: resep.kepekatan,
             waterPHLimit: resep.batasPH,
@@ -133,27 +133,15 @@ final class ProyekViewModel: ObservableObject {
         ) else { return }
         latestConcentration = concentration
 
-        if concentration < updated.colorConcentrationLimit {
-            if !hasWarnedAboutLowConcentration {
-                colorConcentrationWarning = "Kepekatan warna saat ini di bawah "
-                    + "\(ProyekColorMeasurements.format(updated.colorConcentrationLimit))%. "
-                    + "Tambahkan 10 gram pewarna untuk menjaga kualitas dan ketajaman warna batik."
-                hasWarnedAboutLowConcentration = true
-            }
-        } else {
-            hasWarnedAboutLowConcentration = false
+        if let warning = warningTracker.concentrationWarning(
+            for: concentration,
+            limit: updated.colorConcentrationLimit
+        ) {
+            colorConcentrationWarning = warning
         }
 
-        updateWaterPHWarning(measurement.waterPH, limit: updated.waterPHLimit)
-    }
-
-    private func updateWaterPHWarning(_ waterPH: Double?, limit: Double) {
-        guard let waterPH else { return }
-        if waterPH < limit {
-            waterPHWarning = "pH air saat ini di bawah \(ProyekColorMeasurements.format(limit)). "
-                + "Tambahkan 10 gram soda abu untuk menjaga kualitas dan ketajaman warna batik."
-        } else {
-            waterPHWarning = nil
+        if let waterPH = measurement.waterPH {
+            waterPHWarning = MeasurementWarningTracker.waterPHWarning(for: waterPH, limit: updated.waterPHLimit)
         }
     }
 
@@ -162,7 +150,7 @@ final class ProyekViewModel: ObservableObject {
     /// a second call right after a successful save therefore does nothing.
     /// Final readings are nil (never 0) when the sensor has not streamed them yet.
     @discardableResult
-    func saveProject(in context: ModelContext) -> Bool {
+    func saveProject(in context: some ModelPersisting) -> Bool {
         guard let resep = selectedResep, isDataScanned, jumlahKain > 0 else { return false }
 
         let proyek = Proyek(
@@ -171,12 +159,9 @@ final class ProyekViewModel: ObservableObject {
             kepekatanAkhir: latestConcentration,
             phAkhir: latestWaterPH
         )
-        context.insert(proyek)
         do {
-            try context.save()
+            try context.insertAndSave(proyek)
         } catch {
-            // Do not leave an unsaved Proyek in the context (a retry would duplicate it).
-            context.delete(proyek)
             saveError = "Gagal menyimpan proyek: \(error.localizedDescription)"
             return false
         }
@@ -191,7 +176,7 @@ final class ProyekViewModel: ObservableObject {
         measurementTask = nil
         endScanning()
         initialVisibleAverage = nil
-        hasWarnedAboutLowConcentration = false
+        warningTracker.reset()
         selectedResep = nil
         measurements = nil
         isDataScanned = false

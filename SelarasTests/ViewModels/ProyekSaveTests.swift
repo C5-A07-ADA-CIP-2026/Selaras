@@ -190,4 +190,57 @@ struct ProyekSaveTests {
 
         #expect(!viewModel.projectSaved)
     }
+
+    @Test("A failed save reports the error, keeps the form and removes the inserted Proyek")
+    func saveFailureKeepsFormAndDeletesProyek() async throws {
+        let persistence = RecordingModelPersistence()
+        persistence.saveError = StubSaveError()
+        let resep = Resep.sample(batasKepekatan: 80, batasPH: 7)
+        let viewModel = ProyekViewModel(service: StubDeviceConnectionService(
+            updates: [ColorMeasurement(visibleAverage: 850, clear: 1200, nir: 200, waterPH: 6.5)]
+        ))
+        viewModel.markDeviceAsConnected()
+        viewModel.pilihResep(resep)
+        viewModel.jumlahKain = 3
+        await viewModel.scanData()
+        let didStream = await waitUntil { viewModel.latestConcentration != nil }
+        #expect(didStream)
+
+        let didSave = viewModel.saveProject(in: persistence)
+
+        #expect(!didSave)
+        #expect(viewModel.saveError == "Gagal menyimpan proyek: disk penuh")
+        #expect(!viewModel.projectSaved)
+        #expect(viewModel.selectedResep === resep)
+        #expect(viewModel.isDataScanned)
+        #expect(viewModel.isDeviceConnected)
+        #expect(viewModel.jumlahKain == 3)
+        #expect(viewModel.measurements != nil)
+        #expect(viewModel.latestConcentration == 85)
+        #expect(viewModel.latestWaterPH == 6.5)
+        #expect(persistence.events == [.insert, .save, .delete])
+        let inserted = try #require(persistence.insertedModels.first as? Proyek)
+        #expect(inserted.namaWarna == resep.namaWarna)
+        #expect(inserted.jumlahKain == 3)
+        #expect(isSameModel(persistence.deletedModels[0], inserted))
+    }
+
+    @Test("After a failed save a retry can succeed")
+    func saveRetryAfterFailureSucceeds() async {
+        let persistence = RecordingModelPersistence()
+        persistence.saveError = StubSaveError()
+        let viewModel = ProyekViewModel(service: StubDeviceConnectionService())
+        viewModel.pilihResep(.sample())
+        viewModel.jumlahKain = 1
+        await viewModel.scanData()
+        #expect(!viewModel.saveProject(in: persistence))
+
+        persistence.saveError = nil
+        viewModel.clearSaveError()
+
+        #expect(viewModel.saveProject(in: persistence))
+        #expect(viewModel.saveError == nil)
+        #expect(viewModel.projectSaved)
+        #expect(viewModel.selectedResep == nil)
+    }
 }

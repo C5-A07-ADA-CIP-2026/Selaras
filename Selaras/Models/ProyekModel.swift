@@ -164,8 +164,7 @@ struct ProyekColorMeasurements: Equatable {
         for measurement: ColorMeasurement,
         relativeTo baseline: Double
     ) -> Double? {
-        guard baseline > 0 else { return nil }
-        return (measurement.visibleAverage / baseline) * 100
+        measurement.concentration(relativeTo: baseline)
     }
 
     var displayedMeasurements: [ProyekMeasurement] {
