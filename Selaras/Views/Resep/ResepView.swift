@@ -12,16 +12,17 @@ struct ResepView: View {
     @State private var showModal = false
     @State private var teksCari = ""
     @ScaledMetric(relativeTo: .largeTitle) private var ukuranIkon = 100.0
-
+    
     private var hasilCari: [Resep] {
         daftar.cari(teksCari)
     }
-
+    
     var body: some View {
         content
+        //.background(Color(hex: "#F2E8DC").ignoresSafeArea())
             .navigationTitle("Warna Saya")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $teksCari, prompt: "Cari Warna")
+            .searchable(text: $teksCari, placement: .navigationBarDrawer(displayMode: .always), prompt: "Cari Warna")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -34,11 +35,11 @@ struct ResepView: View {
             }
             .sheet(isPresented: $showModal) {
                 NavigationStack {
-                    HalamanTambahResep()
+                    HalamanTambahResep(tampilSebagaiSheet: true)
                 }
             }
     }
-
+    
     @ViewBuilder
     private var content: some View {
         if daftar.isEmpty {
@@ -46,15 +47,38 @@ struct ResepView: View {
         } else if hasilCari.isEmpty {
             ContentUnavailableView.search(text: teksCari)
         } else {
-            List {
-                ForEach(hasilCari) { resep in
-                    ResepRowView(resep: resep)
-                }
-                .onDelete(perform: hapus)
-            }
+            daftarWarna
         }
     }
-
+    
+    private var daftarWarna: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
+                spacing: 12
+            ) {
+                ForEach(hasilCari) { resep in
+                    NavigationLink(value: resep) {
+                        ResepRowView(resep: resep)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            modelContext.delete(resep)
+                        } label: {
+                            Label("Hapus", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+        }
+        .navigationDestination(for: Resep.self) { resep in
+            HalamanTambahResep(resep: resep)
+        }
+    }
+    
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "book")
@@ -63,11 +87,11 @@ struct ResepView: View {
                 .frame(width: ukuranIkon, height: ukuranIkon)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-
+            
             Text("Belum ada warna")
                 .font(.title2)
                 .foregroundStyle(.secondary)
-
+            
             Text("Tekan + untuk menambah warna")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -75,7 +99,7 @@ struct ResepView: View {
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
+    
     private func hapus(at offsets: IndexSet) {
         let target = hasilCari
         for index in offsets {

@@ -9,20 +9,18 @@ struct ResepRowView: View {
     let resep: Resep
 
     var body: some View {
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 8)
+        VStack(alignment: .leading, spacing: 20) {
+            RoundedRectangle(cornerRadius: 12)
                 .fill(Color(hex: resep.warnaHex))
-                .frame(width: 44, height: 44)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(resep.namaWarna)
-                    .font(.headline)
-                Text(resep.catatan)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+                .aspectRatio(1, contentMode: .fit)
+            
+            Text(resep.namaWarna)
+                .font(.headline)
+                .lineLimit(2)
         }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(.white, in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
     }
 }

@@ -9,11 +9,19 @@ import SwiftData
 import SwiftUI
 
 struct HalamanTambahResep: View {
-    @State private var viewModel = FormResepViewModel()
+    @State private var viewModel: FormResepViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var gagalMenyimpan = false
-
+    private let tampilSebagaiSheet: Bool
+    
+    init(resep: Resep? = nil, tampilSebagaiSheet: Bool = false) {
+        self.tampilSebagaiSheet = tampilSebagaiSheet
+        _viewModel = State(
+            initialValue: resep.map { FormResepViewModel(resep: $0) } ?? FormResepViewModel()
+        )
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -33,25 +41,25 @@ struct HalamanTambahResep: View {
             }
             .padding(15)
         }
-        .navigationTitle("Tambah Warna")
+        .navigationTitle(viewModel.sedangMengedit ? viewModel.namaWarna : "Tambah Warna")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarForm }
         .alert("Gagal menyimpan", isPresented: $gagalMenyimpan) {
             Button("Tutup", role: .cancel) {}
         }
     }
-
+    
     private var bagianBahan: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Bahan")
                 .font(.judulBold)
-
+            
             DaftarBahan(
                 judul: "Kode Pewarna Naphtol",
                 labelTambah: "Tambah Pewarna",
                 bahan: $viewModel.pewarna
             )
-
+            
             BarisIsian(label: "Air", satuan: "ml", labelTebal: true) {
                 TextField("0", value: $viewModel.ukuranAir, format: .number)
                     .textFieldStyle(.roundedBorder)
@@ -59,7 +67,7 @@ struct HalamanTambahResep: View {
                     .multilineTextAlignment(.center)
                     .frame(width: 70)
             }
-
+            
             DaftarBahan(
                 judul: "Zat Pembantu",
                 labelTambah: "Tambah Zat Pembantu",
@@ -67,12 +75,12 @@ struct HalamanTambahResep: View {
             )
         }
     }
-
+    
     private var bagianBatas: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Batas")
                 .font(.judulBold)
-
+            
             BarisBatas(
                 label: "Kepekatan Warna",
                 satuan: "%",
@@ -85,7 +93,7 @@ struct HalamanTambahResep: View {
                 nilai: $viewModel.batasPH,
                 rentang: 0 ... 14
             )
-
+            
             Text("""
             Nilai ini adalah batas minimum rekomendasi dan dapat Anda ubah kapan saja. \
             Notifikasi akan dikirim jika nilai turun di bawah batas ini
@@ -98,11 +106,11 @@ struct HalamanTambahResep: View {
             .fixedSize(horizontal: false, vertical: true)
         }
     }
-
+    
     private func simpan() {
         do {
             try viewModel.simpan(context: modelContext)
-            dismiss()
+            if !viewModel.sedangMengedit { dismiss() }
         } catch {
             gagalMenyimpan = true
         }
@@ -110,27 +118,24 @@ struct HalamanTambahResep: View {
 
     @ToolbarContentBuilder
     private var toolbarForm: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
+            if tampilSebagaiSheet {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(role: .close) { dismiss() }
+                }
             }
-            .accessibilityLabel("Batal")
-        }
-
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                simpan()
-            } label: {
-                Image(systemName: "checkmark")
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    simpan()
+                    if tampilSebagaiSheet { dismiss() }
+                } label: {
+                    Label("Simpan", systemImage: "checkmark")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!viewModel.bisaSimpan)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(!viewModel.formLengkap)
-            .accessibilityLabel("Simpan")
         }
-    }
 }
+
 
 #Preview {
     NavigationStack {
