@@ -11,6 +11,18 @@
 #define I2C_SCL_PIN        7
 #define AS7341_I2C_ADDRESS 0x39
 
+// Sensor pH RS485 Modbus RTU lewat modul TTL-RS485 (default pabrik SN-*-PH-N01:
+// 4800 baud 8N1, alamat 1, register 0x0000 = pH x100).
+#define PH_RX_PIN              20  // modul TXD -> GPIO20
+#define PH_TX_PIN              21  // modul RXD <- GPIO21
+#define PH_BAUD_RATE           4800
+#define PH_SLAVE_ADDRESS       1
+#define PH_REGISTER            0x0000
+#define PH_SCALE               100.0f
+#define PH_POLL_INTERVAL_MS    1000
+#define PH_MAX_AGE_MS          3000
+#define PH_RESPONSE_TIMEOUT_MS 150
+
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
 Adafruit_AS7341 as7341;
@@ -18,6 +30,10 @@ bool deviceConnected = false;
 bool oldDeviceConnected = false;
 bool sensorReady = false;
 unsigned long lastMeasurementAt = 0;
+float lastPh = 0;
+bool phKnown = false;
+unsigned long lastPhAt = 0;
+unsigned long lastPhPollAt = 0;
 
 class ServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -30,9 +46,86 @@ class ServerCallbacks: public BLEServerCallbacks {
     }
 };
 
+uint16_t modbusCrc(const uint8_t *data, size_t length) {
+    uint16_t crc = 0xFFFF;
+    for (size_t i = 0; i < length; i++) {
+        crc ^= data[i];
+        for (uint8_t bit = 0; bit < 8; bit++) {
+            crc = (crc & 1) ? (crc >> 1) ^ 0xA001 : crc >> 1;
+        }
+    }
+    return crc;
+}
+
+// Baca pH lewat Modbus fungsi 0x03 (pH dan suhu). Mengembalikan false kalau gagal
+// atau nilai di luar 0-14, supaya aplikasi tidak menerima angka palsu.
+bool readPh(float *ph) {
+    uint8_t request[8] = {
+        PH_SLAVE_ADDRESS, 0x03, PH_REGISTER >> 8, PH_REGISTER & 0xFF, 0x00, 0x02, 0, 0
+    };
+    uint16_t requestCrc = modbusCrc(request, 6);
+    request[6] = requestCrc & 0xFF;
+    request[7] = requestCrc >> 8;
+
+    while (Serial1.available()) {
+        Serial1.read();
+    }
+    Serial1.write(request, sizeof(request));
+    Serial1.flush();
+
+    uint8_t response[9];
+    size_t received = 0;
+    unsigned long startedAt = millis();
+    while (received < sizeof(response) && millis() - startedAt < PH_RESPONSE_TIMEOUT_MS) {
+        while (Serial1.available() && received < sizeof(response)) {
+            response[received++] = Serial1.read();
+        }
+        delay(1);
+    }
+    if (received < sizeof(response)) {
+        return false;
+    }
+
+    uint16_t expectedCrc = modbusCrc(response, 7);
+    uint16_t receivedCrc = response[7] | (response[8] << 8);
+    if (expectedCrc != receivedCrc || response[0] != PH_SLAVE_ADDRESS
+        || response[1] != 0x03 || response[2] != 4) {
+        return false;
+    }
+
+    float value = ((response[3] << 8) | response[4]) / PH_SCALE;
+    if (value < 0.0f || value > 14.0f) {
+        return false;
+    }
+    *ph = value;
+    return true;
+}
+
+void updatePh() {
+    float ph;
+    if (readPh(&ph)) {
+        lastPh = ph;
+        lastPhAt = millis();
+        phKnown = true;
+        Serial.printf("pH sensor: %.2f\n", ph);
+    } else {
+        Serial.println("pH sensor: tidak ada jawaban atau nilai tidak valid.");
+    }
+}
+
+bool phIsFresh() {
+    return phKnown && millis() - lastPhAt <= PH_MAX_AGE_MS;
+}
+
 void setup() {
     Serial.begin(115200);
     delay(1000);
+
+    Serial1.begin(PH_BAUD_RATE, SERIAL_8N1, PH_RX_PIN, PH_TX_PIN);
+    Serial.printf(
+        "Sensor pH RS485 dimulai: RX=GPIO%d, TX=GPIO%d, %d baud, alamat %d\n",
+        PH_RX_PIN, PH_TX_PIN, PH_BAUD_RATE, PH_SLAVE_ADDRESS
+    );
 
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
     Serial.printf(
@@ -95,6 +188,11 @@ void setup() {
 }
 
 void loop() {
+    if (millis() - lastPhPollAt >= PH_POLL_INTERVAL_MS) {
+        lastPhPollAt = millis();
+        updatePh();
+    }
+
     if (sensorReady && millis() - lastMeasurementAt >= 500) {
         updateMeasurement();
         lastMeasurementAt = millis();
@@ -152,7 +250,11 @@ void updateMeasurement() {
     float visibleAverage = visibleTotal / 8.0f;
     String payload = "{\"visibleAverage\":" + String(visibleAverage, 1)
         + ",\"clear\":" + String(readings[10])
-        + ",\"nir\":" + String(readings[11]) + "}";
+        + ",\"nir\":" + String(readings[11]);
+    if (phIsFresh()) {
+        payload += ",\"ph\":" + String(lastPh, 2);
+    }
+    payload += "}";
 
     Serial.printf(
         "AS7341 raw F1..F8: %u, %u, %u, %u, %u, %u, %u, %u | clear=%u nir=%u | visibleAverage=%.1f\n",
