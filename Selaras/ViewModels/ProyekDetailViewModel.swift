@@ -133,18 +133,22 @@ final class ProyekDetailViewModel: ObservableObject {
     }
 
     func clearSaveError() {
+        guard saveError != nil else { return }
         saveError = nil
     }
 
     func clearColorMeasurementError() {
+        guard colorMeasurementError != nil else { return }
         colorMeasurementError = nil
     }
 
     func clearColorConcentrationWarning() {
+        guard colorConcentrationWarning != nil else { return }
         colorConcentrationWarning = nil
     }
 
     func clearWaterPHWarning() {
+        guard waterPHWarning != nil else { return }
         waterPHWarning = nil
     }
 }

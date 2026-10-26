@@ -31,7 +31,7 @@ struct TambahProyekView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Batal") {
+                    Button(role: .close) {
                         dismiss()
                     }
                 }
@@ -60,7 +60,6 @@ struct TambahProyekView: View {
             presenting: viewModel.saveError
         ) { _ in
             Button("Tutup", role: .cancel) {
-                viewModel.clearSaveError()
             }
         } message: { error in
             Text(error)

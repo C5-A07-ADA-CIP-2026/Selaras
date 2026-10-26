@@ -26,7 +26,7 @@ struct DeviceListSheetView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Tutup") {
+                        Button(role: .close) {
                             dismiss()
                         }
                     }
@@ -64,7 +64,6 @@ struct DeviceListSheetView: View {
             presenting: viewModel.errorMessage
         ) { _ in
             Button("Tutup", role: .cancel) {
-                viewModel.clearError()
             }
         } message: { message in
             Text(message)
