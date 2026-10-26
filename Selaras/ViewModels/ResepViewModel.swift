@@ -20,32 +20,81 @@ final class FormResepViewModel {
     var warnaDipilih: Color?
     var pewarna = [BahanInput()]
     var zatPembantu = [BahanInput()]
-
+    
+    /// Resep yang sedang dilihat. `nil` berarti mode tambah.
+    private(set) var resepAsli: Resep?
+    
+    var sedangMengedit: Bool { resepAsli != nil }
+    
     var formLengkap: Bool {
         namaWarna.tidakKosong
-            && namaCatatan.tidakKosong
-            && warnaDipilih != nil
-            && ukuranAir > 0
-            && kepekatan > 0
-            && batasPH > 0
-            && pewarna.semuaTerisi
-            && zatPembantu.semuaTerisi
+        && namaCatatan.tidakKosong
+        && warnaDipilih != nil
+        && ukuranAir > 0
+        && kepekatan > 0
+        && batasPH > 0
+        && pewarna.semuaTerisi
+        && zatPembantu.semuaTerisi
     }
-
+    
+    /// `true` kalau ada isian yang berbeda dari resep asli.
+    var adaPerubahan: Bool {
+        guard let asli = resepAsli else { return false }
+        return namaWarna != asli.namaWarna
+        || namaCatatan != asli.catatan
+        || warnaDipilih?.hexString != asli.warnaHex
+        || ukuranAir != asli.air
+        || kepekatan != asli.kepekatan
+        || batasPH != asli.batasPH
+        || pewarna.map(\.bahan) != asli.pewarna
+        || zatPembantu.map(\.bahan) != asli.zatPembantu
+    }
+    
+    /// Tombol centang aktif (biru) hanya kalau form valid dan ada yang berubah.
+    var bisaSimpan: Bool {
+        sedangMengedit ? (formLengkap && adaPerubahan) : formLengkap
+    }
+    
+    init() {}
+    
+    /// Mengisi form dari resep yang sudah tersimpan (untuk mode baca).
+    init(resep: Resep) {
+        namaWarna = resep.namaWarna
+        namaCatatan = resep.catatan
+        warnaDipilih = Color(hex: resep.warnaHex)
+        ukuranAir = resep.air
+        kepekatan = resep.kepekatan
+        batasPH = resep.batasPH
+        pewarna = resep.pewarna.map { BahanInput(kode: $0.kode, gram: $0.gram) }
+        zatPembantu = resep.zatPembantu.map { BahanInput(kode: $0.kode, gram: $0.gram) }
+    }
+    
     /// Menyimpan form sebagai `Resep` baru. Tidak melakukan apa pun bila form belum lengkap.
     func simpan(context: some ModelPersisting) throws {
         guard formLengkap, let warna = warnaDipilih else { return }
-
-        let resep = Resep(
-            namaWarna: namaWarna,
-            catatan: namaCatatan,
-            warnaHex: warna.hexString,
-            air: ukuranAir,
-            kepekatan: kepekatan,
-            batasPH: batasPH,
-            pewarna: pewarna.map(\.bahan),
-            zatPembantu: zatPembantu.map(\.bahan)
-        )
-        try context.insertAndSave(resep)
+        
+        if let resep = resepAsli {
+            resep.namaWarna = namaWarna
+            resep.catatan = namaCatatan
+            resep.warnaHex = warna.hexString
+            resep.air = ukuranAir
+            resep.kepekatan = kepekatan
+            resep.batasPH = batasPH
+            resep.pewarna = pewarna.map(\.bahan)
+            resep.zatPembantu = zatPembantu.map(\.bahan)
+            try context.save()
+        } else {
+            let resep = Resep(
+                namaWarna: namaWarna,
+                catatan: namaCatatan,
+                warnaHex: warna.hexString,
+                air: ukuranAir,
+                kepekatan: kepekatan,
+                batasPH: batasPH,
+                pewarna: pewarna.map(\.bahan),
+                zatPembantu: zatPembantu.map(\.bahan)
+            )
+            try context.insertAndSave(resep)
+        }
     }
 }
