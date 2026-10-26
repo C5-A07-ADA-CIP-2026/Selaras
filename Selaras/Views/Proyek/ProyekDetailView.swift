@@ -8,6 +8,8 @@ import SwiftUI
 
 /// One project: its device, color and recipe, and the scan that finishes it.
 struct ProyekDetailView: View {
+    @State private var isShowingKonfirmasiSelesai = false
+    @State private var isMemulai = false
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: ProyekDetailViewModel
     @Bindable private var proyek: Proyek
@@ -34,6 +36,13 @@ struct ProyekDetailView: View {
         .padding(.bottom, 8)
         .navigationTitle(proyek.nama)
         .navigationBarTitleDisplayMode(.inline)
+        .overlay {
+            if isMemulai {
+                loadingOverlay
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: isMemulai)
         .onDisappear {
             viewModel.berhenti()
         }
@@ -46,11 +55,9 @@ struct ProyekDetailView: View {
             presenting: viewModel.colorMeasurementError
         ) { _ in
             Button("Sambungkan Ulang") {
-                viewModel.clearColorMeasurementError()
                 isShowingDeviceList = true
             }
             Button("Tutup", role: .cancel) {
-                viewModel.clearColorMeasurementError()
             }
         } message: { error in
             Text(error)
@@ -63,7 +70,6 @@ struct ProyekDetailView: View {
             )
         ) {
             Button("Mengerti", role: .cancel) {
-                viewModel.clearColorConcentrationWarning()
             }
         } message: {
             Text(viewModel.colorConcentrationWarning ?? "")
@@ -73,7 +79,6 @@ struct ProyekDetailView: View {
             isPresented: isPresented(viewModel.waterPHWarning, clear: viewModel.clearWaterPHWarning)
         ) {
             Button("Mengerti", role: .cancel) {
-                viewModel.clearWaterPHWarning()
             }
         } message: {
             Text(viewModel.waterPHWarning ?? "")
@@ -84,10 +89,17 @@ struct ProyekDetailView: View {
             presenting: viewModel.saveError
         ) { _ in
             Button("Tutup", role: .cancel) {
-                viewModel.clearSaveError()
             }
         } message: { error in
             Text(error)
+        }
+        .alert("Selesaikan Proyek?", isPresented: $isShowingKonfirmasiSelesai) {
+            Button("Batal", role: .cancel) {}
+            Button("Selesaikan") {
+                viewModel.selesaikan(in: modelContext)
+            }
+        } message: {
+            Text("Setelah selesai, proyek tidak bisa dipindai atau diubah lagi.")
         }
     }
 
@@ -101,11 +113,7 @@ struct ProyekDetailView: View {
                 ResepWarnaView(pewarna: proyek.pewarna, zatPembantu: proyek.zatPembantu)
             }
 
-            if proyek.status == .aktif {
-                JumlahKainBaris(jumlahKain: $proyek.jumlahKain, minimum: 1)
-            } else {
-                BarisInfo(judul: "Jumlah Kain", nilai: "\(proyek.jumlahKain)", tebal: true)
-            }
+            BarisInfo(judul: "Jumlah Kain", nilai: "\(proyek.jumlahKain)", tebal: true)
 
             if proyek.status == .nonaktif {
                 hasilAkhir
@@ -144,13 +152,24 @@ struct ProyekDetailView: View {
             BarisInfo(judul: "Batas pH", nilai: ProyekColorMeasurements.format(proyek.batasPH))
         }
     }
+    
+    private func mulai() {
+        guard !isMemulai else { return }
+        isMemulai = true
+        Task {
+            async let minimum: Void = Task.sleep(for: .seconds(1.5))
+            await viewModel.mulaiPindai()
+            try? await minimum
+            isMemulai = false
+        }
+    }
 
     private var primaryButton: some View {
         Button {
             if viewModel.isDataScanned {
-                viewModel.selesaikan(in: modelContext)
+                isShowingKonfirmasiSelesai = true
             } else {
-                Task { await viewModel.mulaiPindai() }
+                mulai()
             }
         } label: {
             HStack(spacing: 8) {
@@ -184,10 +203,34 @@ struct ProyekDetailView: View {
             get: { message != nil },
             set: { isPresented in
                 if !isPresented {
-                    clear()
+                    DispatchQueue.main.async { clear() }
                 }
             }
         )
+    }
+    
+    private var loadingOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.25)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ProgressView()
+                    .controlSize(.large)
+
+                Text("Memulai pemindaian…")
+                    .font(.headline)
+
+                Text("Pastikan perangkat tetap menyala dan terhubung.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(24)
+            .frame(maxWidth: 280)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+            .accessibilityElement(children: .combine)
+        }
     }
 }
 
