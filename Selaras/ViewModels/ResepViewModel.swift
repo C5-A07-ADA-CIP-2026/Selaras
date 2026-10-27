@@ -13,9 +13,9 @@ import SwiftUI
 @Observable
 final class FormResepViewModel {
     var namaWarna = ""
-    var ukuranAir = 0
-    var kepekatan = 0.0
-    var batasPH = 0.0
+    var ukuranAir: Int?
+    var kepekatan: Double?
+    var batasPH: Double?
     var warnaDipilih: Color?
     var pewarna = [BahanInput()]
     var zatPembantu = [BahanInput()]
@@ -31,9 +31,9 @@ final class FormResepViewModel {
     var formLengkap: Bool {
         namaWarna.tidakKosong
         && warnaDipilih != nil
-        && ukuranAir > 0
-        && kepekatan > 0
-        && batasPH > 0
+        && (ukuranAir ?? 0) > 0
+        && (kepekatan ?? 0) > 0
+        && (batasPH ?? 0) > 0
         && pewarna.semuaTerisi
         && zatPembantu.semuaTerisi
     }
@@ -71,12 +71,17 @@ final class FormResepViewModel {
     
     /// Menyimpan form sebagai `Resep` baru. Tidak melakukan apa pun bila form belum lengkap.
     func simpan(context: some ModelPersisting) throws {
-        guard formLengkap, let warna = warnaDipilih else { return }
+        guard formLengkap,
+              let warna = warnaDipilih,
+              let air = ukuranAir,
+              let kepekatan,
+              let batasPH
+        else { return }
         
         if let resep = resepAsli {
             resep.namaWarna = namaWarna
             resep.warnaHex = warna.hexString
-            resep.air = ukuranAir
+            resep.air = air
             resep.kepekatan = kepekatan
             resep.batasPH = batasPH
             resep.pewarna = pewarna.map(\.bahan)
@@ -86,7 +91,7 @@ final class FormResepViewModel {
             let resep = Resep(
                 namaWarna: namaWarna,
                 warnaHex: warna.hexString,
-                air: ukuranAir,
+                air: air,
                 kepekatan: kepekatan,
                 batasPH: batasPH,
                 pewarna: pewarna.map(\.bahan),

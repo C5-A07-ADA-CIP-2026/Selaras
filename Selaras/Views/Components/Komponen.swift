@@ -11,7 +11,7 @@ extension Font {
     static var judulBold: Font {
         .system(.headline, weight: .bold)
     }
-
+    
     static var labelBiasa: Font {
         .system(.headline)
     }
@@ -21,7 +21,7 @@ struct KolomTeks: View {
     let judul: String
     let placeholder: String
     @Binding var teks: String
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(judul)
@@ -34,19 +34,19 @@ struct KolomTeks: View {
 
 struct PemilihWarna: View {
     @Binding var warna: Color?
-
+    
     private var bindingWarna: Binding<Color> {
         Binding(
             get: { warna ?? .blue },
             set: { warna = $0 }
         )
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Warna")
                 .font(.judulBold)
-
+            
             ZStack {
                 if let terpilih = warna {
                     RoundedRectangle(cornerRadius: 12)
@@ -66,12 +66,12 @@ struct PemilihWarna: View {
                         .background(Color.accentColor, in: Capsule())
                         .allowsHitTesting(false)
                 }
-
+                
                 ColorPicker("", selection: bindingWarna, supportsOpacity: false)
                     .labelsHidden()
                     .scaleEffect(x: 20, y: 3)
                     .opacity(0.02)
-
+                
                 if warna != nil {
                     Button {
                         warna = nil
@@ -98,18 +98,18 @@ struct PemilihWarna: View {
 struct BarisBahan: View {
     @Binding var kode: String
     @Binding var gram: Double?
-
+    
     var body: some View {
         HStack(spacing: 8) {
             TextField("Kode / Nama Bahan", text: $kode)
                 .textFieldStyle(.roundedBorder)
-
+            
             TextField("0", value: $gram, format: .number)
                 .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.center)
                 .frame(width: 60)
-
+            
             Text("g")
                 .frame(width: 30)
         }
@@ -121,12 +121,12 @@ struct DaftarBahan: View {
     let labelTambah: String
     @Binding var bahan: [BahanInput]
     let pilihanTersedia: [String]
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text(judul)
                 .font(.judulBold)
-
+            
             ForEach($bahan) { $item in
                 HStack(spacing: 12) {
                     Menu {
@@ -169,7 +169,7 @@ struct DaftarBahan: View {
                         .foregroundStyle(.primary)
                 }
             }
-
+            
             Button {
                 bahan.append(BahanInput())
             } label: {
@@ -189,14 +189,14 @@ struct BarisIsian<Isian: View>: View {
     let satuan: String
     var labelTebal = false
     @ViewBuilder let isian: Isian
-
+    
     var body: some View {
         HStack {
             Text(label)
                 .font(labelTebal ? .judulBold : .labelBiasa)
-
+            
             Spacer()
-
+            
             HStack(spacing: 6) {
                 isian
                 
@@ -209,9 +209,9 @@ struct BarisIsian<Isian: View>: View {
 struct BarisBatas: View {
     let label: String
     let satuan: String
-    @Binding var nilai: Double
+    @Binding var nilai: Double?
     let rentang: ClosedRange<Double>
-
+    
     var body: some View {
         BarisIsian(label: label, satuan: satuan) {
             TextField("0", value: $nilai, format: .number)
@@ -220,7 +220,11 @@ struct BarisBatas: View {
                 .multilineTextAlignment(.center)
                 .frame(width: 60)
                 .onChange(of: nilai) { _, baru in
-                    nilai = min(max(baru, rentang.lowerBound), rentang.upperBound)
+                    guard let baru else { return }
+                    let terbatas = min(max(baru, rentang.lowerBound), rentang.upperBound)
+                    if terbatas != baru {
+                        nilai = terbatas
+                    }
                 }
         }
     }
