@@ -13,7 +13,7 @@ struct ResepRowView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(hex: resep.warnaHex))
                 .aspectRatio(1, contentMode: .fit)
-            
+
             Text(resep.namaWarna)
                 .font(.headline)
                 .lineLimit(2)

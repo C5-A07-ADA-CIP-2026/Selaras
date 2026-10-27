@@ -12,14 +12,14 @@ struct ResepView: View {
     @State private var showModal = false
     @State private var teksCari = ""
     @ScaledMetric(relativeTo: .largeTitle) private var ukuranIkon = 100.0
-    
+
     private var hasilCari: [Resep] {
         daftar.cari(teksCari)
     }
-    
+
     var body: some View {
         content
-        //.background(Color(hex: "#F2E8DC").ignoresSafeArea())
+            // .background(Color(hex: "#F2E8DC").ignoresSafeArea())
             .navigationTitle("Warna Saya")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $teksCari, placement: .navigationBarDrawer(displayMode: .always), prompt: "Cari Warna")
@@ -42,7 +42,7 @@ struct ResepView: View {
                 HalamanTambahResep(resep: resep)
             }
     }
-    
+
     @ViewBuilder
     private var content: some View {
         if daftar.isEmpty {
@@ -53,7 +53,7 @@ struct ResepView: View {
             daftarWarna
         }
     }
-    
+
     private var daftarWarna: some View {
         ScrollView {
             LazyVGrid(
@@ -71,7 +71,7 @@ struct ResepView: View {
             .padding(.vertical, 4)
         }
     }
-    
+
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "book")
@@ -80,11 +80,11 @@ struct ResepView: View {
                 .frame(width: ukuranIkon, height: ukuranIkon)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            
+
             Text("Belum ada warna")
                 .font(.title2)
                 .foregroundStyle(.secondary)
-            
+
             Text("Tekan + untuk menambah warna")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

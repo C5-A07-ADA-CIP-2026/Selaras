@@ -9,9 +9,9 @@ import SwiftUI
 struct PilihResepSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Resep.dibuat, order: .reverse) private var daftar: [Resep]
-    
+
     let onSelect: (Resep) -> Void
-    
+
     var body: some View {
         NavigationStack {
             content
@@ -28,7 +28,7 @@ struct PilihResepSheetView: View {
                 }
         }
     }
-    
+
     @ViewBuilder
     private var content: some View {
         if daftar.isEmpty {

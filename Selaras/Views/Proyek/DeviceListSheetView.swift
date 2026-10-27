@@ -63,8 +63,7 @@ struct DeviceListSheetView: View {
             isPresented: errorIsPresented,
             presenting: viewModel.errorMessage
         ) { _ in
-            Button("Tutup", role: .cancel) {
-            }
+            Button("Tutup", role: .cancel) {}
         } message: { message in
             Text(message)
         }

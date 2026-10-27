@@ -20,7 +20,10 @@ final class FormResepViewModel {
     var pewarna = [BahanInput()]
     var zatPembantu = [BahanInput()]
 
-    let daftarPilihanPewarna = ["Naphtol AS-G", "Naphtol AS-LB", "Naphtol AS", "Naphtol AS-D", "Naphtol AS-OL", "Naphtol AS-BS", "Naphtol AS-BO", "Naphtol AS-BR", "Naphtol AS-GR", "Naphtol Soga 91"]
+    let daftarPilihanPewarna = [
+        "Naphtol AS-G", "Naphtol AS-LB", "Naphtol AS", "Naphtol AS-D", "Naphtol AS-OL",
+        "Naphtol AS-BS", "Naphtol AS-BO", "Naphtol AS-BR", "Naphtol AS-GR", "Naphtol Soga 91",
+    ]
     let daftarPilihanZatPembantu = ["Soda Kostik", "Soda Abu"]
 
     /// Resep yang sedang dilihat. `nil` berarti mode tambah.
