@@ -47,7 +47,9 @@ struct ProyekDetailView: View {
             viewModel.berhenti()
         }
         .sheet(isPresented: $isShowingDeviceList) {
-            DeviceListSheetView()
+            DeviceListSheetView { device in
+                Task { await viewModel.pindahPerangkat(device, in: modelContext) }
+            }
         }
         .alert(
             "Data warna tidak tersedia",
@@ -57,8 +59,7 @@ struct ProyekDetailView: View {
             Button("Sambungkan Ulang") {
                 isShowingDeviceList = true
             }
-            Button("Tutup", role: .cancel) {
-            }
+            Button("Tutup", role: .cancel) {}
         } message: { error in
             Text(error)
         }
@@ -69,8 +70,7 @@ struct ProyekDetailView: View {
                 clear: viewModel.clearColorConcentrationWarning
             )
         ) {
-            Button("Mengerti", role: .cancel) {
-            }
+            Button("Mengerti", role: .cancel) {}
         } message: {
             Text(viewModel.colorConcentrationWarning ?? "")
         }
@@ -78,8 +78,7 @@ struct ProyekDetailView: View {
             "pH Air Kurang",
             isPresented: isPresented(viewModel.waterPHWarning, clear: viewModel.clearWaterPHWarning)
         ) {
-            Button("Mengerti", role: .cancel) {
-            }
+            Button("Mengerti", role: .cancel) {}
         } message: {
             Text(viewModel.waterPHWarning ?? "")
         }
@@ -88,8 +87,7 @@ struct ProyekDetailView: View {
             isPresented: isPresented(viewModel.saveError, clear: viewModel.clearSaveError),
             presenting: viewModel.saveError
         ) { _ in
-            Button("Tutup", role: .cancel) {
-            }
+            Button("Tutup", role: .cancel) {}
         } message: { error in
             Text(error)
         }
@@ -110,7 +108,11 @@ struct ProyekDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 JudulBagian(teks: "Warna")
                 WarnaSwatchView(namaWarna: proyek.namaWarna, warnaHex: proyek.warnaHex)
-                ResepWarnaView(pewarna: proyek.pewarna, zatPembantu: proyek.zatPembantu, air: proyek.air > 0 ? proyek.air : nil)
+                ResepWarnaView(
+                    pewarna: proyek.pewarna,
+                    zatPembantu: proyek.zatPembantu,
+                    air: proyek.air > 0 ? proyek.air : nil
+                )
             }
 
             BarisInfo(judul: "Jumlah Kain", nilai: "\(proyek.jumlahKain)", tebal: true)
@@ -152,7 +154,7 @@ struct ProyekDetailView: View {
             BarisInfo(judul: "Batas pH", nilai: ProyekColorMeasurements.format(proyek.batasPH))
         }
     }
-    
+
     private func mulai() {
         guard !isMemulai else { return }
         isMemulai = true
@@ -212,7 +214,7 @@ struct ProyekDetailView: View {
             }
         )
     }
-    
+
     private var loadingOverlay: some View {
         ZStack {
             Color.black.opacity(0.25)
