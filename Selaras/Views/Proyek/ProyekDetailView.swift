@@ -43,6 +43,9 @@ struct ProyekDetailView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: isMemulai)
+        .onAppear {
+            viewModel.lanjutkanPengukuran()
+        }
         .onDisappear {
             viewModel.berhenti()
         }
@@ -160,7 +163,7 @@ struct ProyekDetailView: View {
         isMemulai = true
         Task {
             async let minimum: Void = Task.sleep(for: .seconds(1.5))
-            await viewModel.mulaiPindai()
+            await viewModel.mulaiPindai(in: modelContext)
             guard viewModel.colorMeasurementError == nil else {
                 isMemulai = false
                 return

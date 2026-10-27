@@ -29,6 +29,10 @@ final class Proyek {
     var jumlahKain: Int
     var kepekatanAkhir: Double?
     var phAkhir: Double?
+    /// The baseline read when the scan started (nil until then). Its presence marks the project as scanned,
+    /// so reopening it resumes at the same stage.
+    var visibleAverageAwal: Double?
+    var phAwal: Double?
     @Relationship(deleteRule: .nullify) var resep: Resep?
 
     /// A project from before the lifecycle existed was saved finished, so it reads as inactive.
@@ -57,7 +61,7 @@ final class Proyek {
         get { zatPembantuTersimpan ?? [] }
         set { zatPembantuTersimpan = newValue }
     }
-    
+
     var air: Int {
         get { airTersimpan ?? resep?.air ?? 0 }
         set { airTersimpan = newValue }
