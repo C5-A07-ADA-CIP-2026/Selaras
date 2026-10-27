@@ -105,15 +105,15 @@ struct ResepWarnaView: View {
             }
 
             ForEach(Array(pewarna.enumerated()), id: \.offset) { _, bahan in
-                BarisInfo(judul: "Pewarna \(bahan.kode)", nilai: bahan.gramTeks)
+                BarisInfo(judul: bahan.kode, nilai: bahan.gramTeks)
             }
-            
+
             if let air {
                 BarisInfo(judul: "Air", nilai: "\(air) ml")
             }
-            
+
             ForEach(Array(zatPembantu.enumerated()), id: \.offset) { _, bahan in
-                BarisInfo(judul: "Zat Pembantu \(bahan.kode)", nilai: bahan.gramTeks)
+                BarisInfo(judul: bahan.kode, nilai: bahan.gramTeks)
             }
         }
     }

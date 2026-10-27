@@ -75,6 +75,18 @@ struct DeviceListViewModelTests {
         #expect(viewModel.devices == [esp])
     }
 
+    @Test("A device found again with its real name is renamed in place, not listed twice")
+    func rediscoveredDeviceTakesNewName() async {
+        let id = UUID()
+        let unnamed = DiscoveredDevice(id: id, nama: DiscoveredDevice.unnamed)
+        let named = DiscoveredDevice(id: id, nama: "Selaras-A1B2C3D4")
+        let viewModel = DeviceListViewModel(service: StubDeviceConnectionService(devices: [unnamed, named]))
+
+        await viewModel.scan()
+
+        #expect(viewModel.devices == [named])
+    }
+
     @Test("Cancelling the task that runs the scan stops it")
     func cancellingScanTaskStopsScanning() async {
         let (stream, _) = AsyncThrowingStream<DiscoveredDevice, any Error>.makeStream()

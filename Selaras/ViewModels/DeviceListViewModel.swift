@@ -53,7 +53,10 @@ final class DeviceListViewModel {
         do {
             for try await device in service.scanDevices() {
                 guard activeScan == scan else { return }
-                if !devices.contains(device) {
+                // The same device can be reported again once its name is known.
+                if let index = devices.firstIndex(where: { $0.id == device.id }) {
+                    devices[index] = device
+                } else {
                     devices.append(device)
                 }
             }

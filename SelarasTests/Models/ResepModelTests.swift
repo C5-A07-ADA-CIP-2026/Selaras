@@ -11,11 +11,11 @@ import Testing
 struct ResepModelTests {
     private let daftar: [Resep] = [
         Resep(
-            namaWarna: "Merah Marun", catatan: "Seragam Bu Dina", warnaHex: "#B50202",
+            namaWarna: "Merah Marun", warnaHex: "#B50202",
             air: 1000, kepekatan: 80, batasPH: 7
         ),
         Resep(
-            namaWarna: "Biru Laut", catatan: "Untuk kain katun", warnaHex: "#0044AA",
+            namaWarna: "Biru Laut", warnaHex: "#0044AA",
             air: 1000, kepekatan: 80, batasPH: 7
         ),
     ]
@@ -23,11 +23,6 @@ struct ResepModelTests {
     @Test("Matches namaWarna ignoring case")
     func matchesNamaWarna() {
         #expect(daftar.cari("marun").map(\.namaWarna) == ["Merah Marun"])
-    }
-
-    @Test("Matches catatan ignoring case")
-    func matchesCatatan() {
-        #expect(daftar.cari("BU DINA").map(\.namaWarna) == ["Merah Marun"])
     }
 
     @Test("Blank or whitespace text returns everything")

@@ -27,7 +27,6 @@ extension Resep {
     ) -> Resep {
         Resep(
             namaWarna: namaWarna,
-            catatan: "Catatan \(namaWarna)",
             warnaHex: warnaHex,
             air: 1000,
             kepekatan: batasKepekatan,

@@ -58,8 +58,19 @@ struct ColorMeasurement: Equatable, Decodable, Sendable {
 
 /// A Selaras device found while scanning.
 struct DiscoveredDevice: Identifiable, Hashable, Sendable {
+    /// Shown while a device has not revealed its name yet.
+    static let unnamed = "Tanpa Nama"
+
     let id: UUID
     let nama: String
+
+    /// The name to show for a peripheral. The advertised name comes first because iOS caches `peripheralName`
+    /// and can keep an old one. Blank names count as missing; nil means neither source has a name yet.
+    nonisolated static func resolveName(peripheralName: String?, advertisedName: String?) -> String? {
+        [advertisedName, peripheralName]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
+    }
 }
 
 /// Finds and connects to devices. This is all `DeviceListViewModel` needs.

@@ -51,7 +51,6 @@ struct ProyekEntityTests {
         let zatPembantu = [Bahan(kode: "Kostik", gram: 2)]
         let resep = Resep(
             namaWarna: "Ungu",
-            catatan: "",
             warnaHex: "#4B0082",
             air: 1000,
             kepekatan: 80,

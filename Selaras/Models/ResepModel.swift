@@ -11,7 +11,6 @@ import SwiftData
 @Model
 class Resep {
     var namaWarna: String
-    var catatan: String
     var warnaHex: String
     var air: Int
     var kepekatan: Double
@@ -22,12 +21,11 @@ class Resep {
     @Relationship(deleteRule: .nullify, inverse: \Proyek.resep) var proyekTersimpan: [Proyek] = []
 
     // swiftlint:disable opening_brace
-    init(namaWarna: String, catatan: String, warnaHex: String,
+    init(namaWarna: String, warnaHex: String,
          air: Int, kepekatan: Double, batasPH: Double,
          pewarna: [Bahan] = [], zatPembantu: [Bahan] = [], dibuat: Date = .now)
     {
         self.namaWarna = namaWarna
-        self.catatan = catatan
         self.warnaHex = warnaHex
         self.air = air
         self.kepekatan = kepekatan
@@ -40,14 +38,13 @@ class Resep {
 }
 
 extension [Resep] {
-    /// Resep yang `namaWarna` atau `catatan`-nya memuat `teks`, tanpa peduli huruf besar/kecil.
+    /// Resep yang `namaWarna` memuat `teks`, tanpa peduli huruf besar/kecil.
     /// Teks kosong atau hanya spasi mengembalikan semua resep.
     func cari(_ teks: String) -> [Resep] {
         let kataKunci = teks.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !kataKunci.isEmpty else { return self }
         return filter {
             $0.namaWarna.localizedCaseInsensitiveContains(kataKunci)
-                || $0.catatan.localizedCaseInsensitiveContains(kataKunci)
         }
     }
 }

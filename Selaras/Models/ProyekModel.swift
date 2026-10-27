@@ -23,13 +23,16 @@ final class Proyek {
     var airTersimpan: Int?
     var tanggal: Date
     var namaWarna: String
-    var catatan: String
     var warnaHex: String
     var batasKepekatan: Double
     var batasPH: Double
     var jumlahKain: Int
     var kepekatanAkhir: Double?
     var phAkhir: Double?
+    /// The baseline read when the scan started (nil until then). Its presence marks the project as scanned,
+    /// so reopening it resumes at the same stage.
+    var visibleAverageAwal: Double?
+    var phAwal: Double?
     @Relationship(deleteRule: .nullify) var resep: Resep?
 
     /// A project from before the lifecycle existed was saved finished, so it reads as inactive.
@@ -58,7 +61,7 @@ final class Proyek {
         get { zatPembantuTersimpan ?? [] }
         set { zatPembantuTersimpan = newValue }
     }
-    
+
     var air: Int {
         get { airTersimpan ?? resep?.air ?? 0 }
         set { airTersimpan = newValue }
@@ -73,7 +76,6 @@ final class Proyek {
         perangkatNamaTersimpan = perangkatNama
         self.tanggal = tanggal
         namaWarna = resep.namaWarna
-        catatan = resep.catatan
         warnaHex = resep.warnaHex
         batasKepekatan = resep.kepekatan
         batasPH = resep.batasPH

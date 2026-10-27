@@ -62,13 +62,6 @@ struct ResepView: View {
                         ResepRowView(resep: resep)
                     }
                     .buttonStyle(.plain)
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            modelContext.delete(resep)
-                        } label: {
-                            Label("Hapus", systemImage: "trash")
-                        }
-                    }
                 }
             }
             .padding(.horizontal, 10)
@@ -98,13 +91,6 @@ struct ResepView: View {
         }
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private func hapus(at offsets: IndexSet) {
-        let target = hasilCari
-        for index in offsets {
-            modelContext.delete(target[index])
-        }
     }
 }
 
@@ -143,11 +129,11 @@ private let previewContainer: ModelContainer = {
     // swiftlint:disable:next force_try
     let container = try! SelarasSchema.makeContainer(inMemory: true)
     container.mainContext.insert(Resep(
-        namaWarna: "Merah Marun", catatan: "Seragam Bu Dina", warnaHex: "#B50202",
+        namaWarna: "Merah Marun", warnaHex: "#B50202",
         air: 1000, kepekatan: 80, batasPH: 7
     ))
     container.mainContext.insert(Resep(
-        namaWarna: "Biru Laut", catatan: "Untuk kain katun", warnaHex: "#0044AA",
+        namaWarna: "Biru Laut", warnaHex: "#0044AA",
         air: 1000, kepekatan: 80, batasPH: 7
     ))
     return container

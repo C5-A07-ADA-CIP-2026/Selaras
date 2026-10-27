@@ -13,6 +13,8 @@ struct HalamanTambahResep: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var gagalMenyimpan = false
+    @State private var gagalMenghapus = false
+    @State private var konfirmasiHapus = false
     private let tampilSebagaiSheet: Bool
     
     init(resep: Resep? = nil, tampilSebagaiSheet: Bool = false) {
@@ -30,11 +32,6 @@ struct HalamanTambahResep: View {
                     placeholder: "Cth: Merah Marun",
                     teks: $viewModel.namaWarna
                 )
-                KolomTeks(
-                    judul: "Catatan",
-                    placeholder: "Cth: Seragam Bu Dina",
-                    teks: $viewModel.namaCatatan
-                )
                 PemilihWarna(warna: $viewModel.warnaDipilih)
                 bagianBahan
                 bagianBatas
@@ -46,6 +43,15 @@ struct HalamanTambahResep: View {
         .toolbar { toolbarForm }
         .alert("Gagal menyimpan", isPresented: $gagalMenyimpan) {
             Button("Tutup", role: .cancel) {}
+        }
+        .alert("Gagal menghapus", isPresented: $gagalMenghapus) {
+            Button("Tutup", role: .cancel) {}
+        }
+        .alert("Hapus Warna?", isPresented: $konfirmasiHapus) {
+            Button("Batal", role: .cancel) {}
+            Button("Hapus", role: .destructive) { hapus() }
+        } message: {
+            Text("Warna ini akan dihapus dari daftar. Proyek yang sudah dibuat dengan warna ini tidak terpengaruh.")
         }
     }
     
@@ -106,36 +112,57 @@ struct HalamanTambahResep: View {
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
+            
+            if viewModel.sedangMengedit {
+                Button(role: .destructive) {
+                    konfirmasiHapus = true
+                } label: {
+                    Label("Hapus Warna", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .padding(.top, 8)
+            }
         }
     }
     
     private func simpan() {
         do {
             try viewModel.simpan(context: modelContext)
-            if !viewModel.sedangMengedit { dismiss() }
+            if tampilSebagaiSheet { dismiss() }
         } catch {
             gagalMenyimpan = true
         }
     }
-
+    
+    private func hapus() {
+        do {
+            try viewModel.hapus(context: modelContext)
+            dismiss()
+        } catch {
+            gagalMenghapus = true
+        }
+    }
+    
     @ToolbarContentBuilder
     private var toolbarForm: some ToolbarContent {
-            if tampilSebagaiSheet {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(role: .close) { dismiss() }
-                }
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button {
-                    simpan()
-                    if tampilSebagaiSheet { dismiss() }
-                } label: {
-                    Label("Simpan", systemImage: "checkmark")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!viewModel.bisaSimpan)
+        if tampilSebagaiSheet {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(role: .close) { dismiss() }
             }
         }
+        ToolbarItem(placement: .confirmationAction) {
+            Button {
+                simpan()
+                if tampilSebagaiSheet { dismiss() }
+            } label: {
+                Label("Simpan", systemImage: "checkmark")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!viewModel.bisaSimpan)
+        }
+    }
 }
 
 
