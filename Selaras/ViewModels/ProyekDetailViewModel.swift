@@ -132,6 +132,33 @@ final class ProyekDetailViewModel: ObservableObject {
         return true
     }
 
+    /// Points the project at `device` after the user reconnects to another one because the connection failed.
+    /// Returns `false` and keeps the previous device when the project is finished, already being measured
+    /// (the device cannot change mid-project) or the save fails.
+    @discardableResult
+    func gantiPerangkat(_ device: DiscoveredDevice, in persistence: some ModelPersisting) -> Bool {
+        guard proyek.status == .aktif, !isDataScanned else { return false }
+
+        let sebelumnya = proyek.perangkatNama
+        proyek.perangkatNama = device.nama
+        do {
+            try persistence.save()
+        } catch {
+            proyek.perangkatNama = sebelumnya
+            saveError = "Gagal menyimpan proyek: \(error.localizedDescription)"
+            return false
+        }
+        return true
+    }
+
+    /// Switches the project to `device` (see `gantiPerangkat`) and retries the read that failed, now from the new one.
+    @discardableResult
+    func pindahPerangkat(_ device: DiscoveredDevice, in persistence: some ModelPersisting) async -> Bool {
+        guard gantiPerangkat(device, in: persistence) else { return false }
+        await mulaiPindai()
+        return true
+    }
+
     func clearSaveError() {
         guard saveError != nil else { return }
         saveError = nil
