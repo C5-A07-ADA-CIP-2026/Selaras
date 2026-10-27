@@ -231,6 +231,31 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
             // Duplicates are needed so the scan response (which holds the name) is delivered too.
             options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
         )
+        // The ESP32 stops advertising while connected, so a device this app is still connected to
+        // (e.g. the user left the form without saving) is only found this way.
+        for peripheral in manager.retrieveConnectedPeripherals(withServices: [Self.serviceUUID]) {
+            report(peripheral, advertisedName: nil)
+        }
+    }
+
+    /// Remembers `peripheral` and yields it to the running scan, again only when a real name replaces "Tanpa Nama".
+    private func report(_ peripheral: CBPeripheral, advertisedName: String?) {
+        // The ESP32 sends its name in the scan response, which can arrive after the first callback for the device.
+        let resolvedName = DiscoveredDevice.resolveName(
+            peripheralName: peripheral.name,
+            advertisedName: advertisedName
+        )
+        let name = resolvedName ?? DiscoveredDevice.unnamed
+        guard reportedNames[peripheral.identifier] != name else { return }
+        if reportedNames[peripheral.identifier] != nil, resolvedName == nil {
+            return
+        }
+        print("[BLE] ✨ Ditemukan: '\(name)' | UUID: \(peripheral.identifier.uuidString)")
+
+        reportedNames[peripheral.identifier] = name
+        scannedPeripherals[peripheral.identifier] = peripheral
+        peripheral.delegate = self
+        scanContinuation?.yield(DiscoveredDevice(id: peripheral.identifier, nama: name))
     }
 }
 
@@ -277,25 +302,9 @@ extension BLEDeviceConnectionService: CBCentralManagerDelegate {
         _: CBCentralManager,
         didDiscover peripheral: CBPeripheral,
         advertisementData: [String: Any],
-        rssi RSSI: NSNumber
+        rssi _: NSNumber
     ) {
-        // The ESP32 sends its name in the scan response, which can arrive after the first callback for the device.
-        let resolvedName = DiscoveredDevice.resolveName(
-            peripheralName: peripheral.name,
-            advertisedName: advertisementData[CBAdvertisementDataLocalNameKey] as? String
-        )
-        let name = resolvedName ?? DiscoveredDevice.unnamed
-        guard reportedNames[peripheral.identifier] != name else { return }
-        // Report the device again only when a real name replaces "Tanpa Nama".
-        if reportedNames[peripheral.identifier] != nil, resolvedName == nil {
-            return
-        }
-        print("[BLE] ✨ Ditemukan: '\(name)' | UUID: \(peripheral.identifier.uuidString) | RSSI: \(RSSI) dBm")
-
-        reportedNames[peripheral.identifier] = name
-        scannedPeripherals[peripheral.identifier] = peripheral
-        peripheral.delegate = self
-        scanContinuation?.yield(DiscoveredDevice(id: peripheral.identifier, nama: name))
+        report(peripheral, advertisedName: advertisementData[CBAdvertisementDataLocalNameKey] as? String)
     }
 
     func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
