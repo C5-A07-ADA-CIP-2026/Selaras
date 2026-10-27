@@ -9,9 +9,9 @@ import SwiftUI
 struct PilihResepSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Resep.dibuat, order: .reverse) private var daftar: [Resep]
-
+    
     let onSelect: (Resep) -> Void
-
+    
     var body: some View {
         NavigationStack {
             content
@@ -28,7 +28,7 @@ struct PilihResepSheetView: View {
                 }
         }
     }
-
+    
     @ViewBuilder
     private var content: some View {
         if daftar.isEmpty {
@@ -38,16 +38,24 @@ struct PilihResepSheetView: View {
                 description: Text("Tambahkan warna di tab Resep dulu.")
             )
         } else {
-            List(daftar) { resep in
-                Button {
-                    onSelect(resep)
-                    dismiss()
-                } label: {
-                    ResepRowView(resep: resep)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
+            ScrollView {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
+                    spacing: 12
+                ) {
+                    ForEach(daftar) { resep in
+                        Button {
+                            onSelect(resep)
+                            dismiss()
+                        } label: {
+                            ResepRowView(resep: resep)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
             }
         }
     }

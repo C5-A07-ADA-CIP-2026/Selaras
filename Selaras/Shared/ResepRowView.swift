@@ -20,7 +20,11 @@ struct ResepRowView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity)
-        .background(.white, in: RoundedRectangle(cornerRadius: 12))
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemGroupedBackground))
+                .shadow(color: .black.opacity(0.20), radius: 10, x: 2, y: 2)
+        }
         .accessibilityElement(children: .combine)
     }
 }
