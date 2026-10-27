@@ -33,7 +33,6 @@ struct ResepRowView: View {
     ResepRowView(
         resep: Resep(
             namaWarna: "Merah Marun",
-            catatan: "Untuk kain katun",
             warnaHex: "#B50202",
             air: 1000,
             kepekatan: 80,
@@ -47,7 +46,6 @@ struct ResepRowView: View {
     ResepRowView(
         resep: Resep(
             namaWarna: "Merah Marun",
-            catatan: "Untuk kain katun",
             warnaHex: "#B50202",
             air: 1000,
             kepekatan: 80,

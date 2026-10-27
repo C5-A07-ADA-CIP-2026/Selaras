@@ -51,7 +51,7 @@ extension Proyek {
             nama: "Seragam RT 5",
             perangkatNama: "ESP 32",
             resep: Resep(
-                namaWarna: "Merah Marun", catatan: "Seragam Bu Dina", warnaHex: "#B50202",
+                namaWarna: "Merah Marun", warnaHex: "#B50202",
                 air: 1000, kepekatan: 80, batasPH: 7,
                 pewarna: [Bahan(kode: "Naphtol AS", gram: 5)],
                 zatPembantu: [Bahan(kode: "Kostik", gram: 2)]

@@ -17,7 +17,6 @@ struct FormResepViewModelTests {
         let context = try makeTestContext()
         let viewModel = FormResepViewModel()
         viewModel.namaWarna = "Merah Marun"
-        viewModel.namaCatatan = "Seragam Bu Dina"
         viewModel.warnaDipilih = Color(hex: "#B50202")
         viewModel.ukuranAir = 200
         viewModel.kepekatan = 80
@@ -31,7 +30,6 @@ struct FormResepViewModelTests {
         #expect(hasil.count == 1)
         let resep = try #require(hasil.first)
         #expect(resep.namaWarna == "Merah Marun")
-        #expect(resep.catatan == "Seragam Bu Dina")
         #expect(resep.warnaHex == "#B50202")
         #expect(resep.air == 200)
         #expect(resep.kepekatan == 80)
@@ -57,7 +55,6 @@ struct FormResepViewModelTests {
         persistence.saveError = StubSaveError()
         let viewModel = FormResepViewModel()
         viewModel.namaWarna = "Merah Marun"
-        viewModel.namaCatatan = "Seragam Bu Dina"
         viewModel.warnaDipilih = Color(hex: "#B50202")
         viewModel.ukuranAir = 200
         viewModel.kepekatan = 80

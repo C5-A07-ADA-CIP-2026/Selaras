@@ -94,7 +94,7 @@ private let previewContainer: ModelContainer = {
     // swiftlint:disable:next force_try
     let container = try! SelarasSchema.makeContainer(inMemory: true)
     let resep = Resep(
-        namaWarna: "Merah Marun", catatan: "Seragam Bu Dina", warnaHex: "#B50202",
+        namaWarna: "Merah Marun", warnaHex: "#B50202",
         air: 1000, kepekatan: 80, batasPH: 7
     )
     container.mainContext.insert(Proyek(nama: "Seragam RT 5", perangkatNama: "ESP 32", resep: resep, jumlahKain: 2))

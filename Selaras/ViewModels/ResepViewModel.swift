@@ -13,7 +13,6 @@ import SwiftUI
 @Observable
 final class FormResepViewModel {
     var namaWarna = ""
-    var namaCatatan = ""
     var ukuranAir = 0
     var kepekatan = 0.0
     var batasPH = 0.0
@@ -28,7 +27,6 @@ final class FormResepViewModel {
     
     var formLengkap: Bool {
         namaWarna.tidakKosong
-        && namaCatatan.tidakKosong
         && warnaDipilih != nil
         && ukuranAir > 0
         && kepekatan > 0
@@ -39,9 +37,8 @@ final class FormResepViewModel {
     
     /// `true` kalau ada isian yang berbeda dari resep asli.
     var adaPerubahan: Bool {
-        guard let asli = resepAsli else { return false }
+        guard let asli = resepAsli, !asli.isDeleted else { return false }
         return namaWarna != asli.namaWarna
-        || namaCatatan != asli.catatan
         || warnaDipilih?.hexString != asli.warnaHex
         || ukuranAir != asli.air
         || kepekatan != asli.kepekatan
@@ -59,8 +56,8 @@ final class FormResepViewModel {
     
     /// Mengisi form dari resep yang sudah tersimpan (untuk mode baca).
     init(resep: Resep) {
+        resepAsli = resep
         namaWarna = resep.namaWarna
-        namaCatatan = resep.catatan
         warnaDipilih = Color(hex: resep.warnaHex)
         ukuranAir = resep.air
         kepekatan = resep.kepekatan
@@ -75,7 +72,6 @@ final class FormResepViewModel {
         
         if let resep = resepAsli {
             resep.namaWarna = namaWarna
-            resep.catatan = namaCatatan
             resep.warnaHex = warna.hexString
             resep.air = ukuranAir
             resep.kepekatan = kepekatan
@@ -86,7 +82,6 @@ final class FormResepViewModel {
         } else {
             let resep = Resep(
                 namaWarna: namaWarna,
-                catatan: namaCatatan,
                 warnaHex: warna.hexString,
                 air: ukuranAir,
                 kepekatan: kepekatan,
@@ -96,5 +91,11 @@ final class FormResepViewModel {
             )
             try context.insertAndSave(resep)
         }
+    }
+    
+    func hapus(context: some ModelPersisting) throws {
+        guard let resep = resepAsli else { return }
+        context.delete(resep)
+        try context.save()
     }
 }

@@ -23,7 +23,6 @@ final class Proyek {
     var airTersimpan: Int?
     var tanggal: Date
     var namaWarna: String
-    var catatan: String
     var warnaHex: String
     var batasKepekatan: Double
     var batasPH: Double
@@ -73,7 +72,6 @@ final class Proyek {
         perangkatNamaTersimpan = perangkatNama
         self.tanggal = tanggal
         namaWarna = resep.namaWarna
-        catatan = resep.catatan
         warnaHex = resep.warnaHex
         batasKepekatan = resep.kepekatan
         batasPH = resep.batasPH
