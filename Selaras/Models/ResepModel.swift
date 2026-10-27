@@ -73,8 +73,26 @@ extension BahanInput {
     }
 }
 
+extension BahanInput {
+    /// Baris yang belum disentuh: tanpa kode dan tanpa gram.
+    var kosong: Bool {
+        !kode.tidakKosong && (gram ?? 0) == 0
+    }
+}
+
 extension [BahanInput] {
     var semuaTerisi: Bool {
         allSatisfy(\.terisi)
+    }
+
+    /// Baris yang terisi lengkap; baris kosong dibuang.
+    var barisTerisi: [BahanInput] {
+        filter(\.terisi)
+    }
+
+    /// Minimal satu baris terisi, dan tidak ada baris yang setengah terisi.
+    /// Baris kosong diabaikan.
+    var valid: Bool {
+        !barisTerisi.isEmpty && allSatisfy { $0.terisi || $0.kosong }
     }
 }
