@@ -20,6 +20,7 @@ final class Proyek {
     var perangkatNamaTersimpan: String?
     var pewarnaTersimpan: [Bahan]?
     var zatPembantuTersimpan: [Bahan]?
+    var airTersimpan: Int?
     var tanggal: Date
     var namaWarna: String
     var catatan: String
@@ -57,6 +58,11 @@ final class Proyek {
         get { zatPembantuTersimpan ?? [] }
         set { zatPembantuTersimpan = newValue }
     }
+    
+    var air: Int {
+        get { airTersimpan ?? resep?.air ?? 0 }
+        set { airTersimpan = newValue }
+    }
 
     /// A new, active project. Name, colour, limits and ingredients are copied from `resep`,
     /// so the project stays correct when the recipe is edited or deleted.
@@ -73,6 +79,7 @@ final class Proyek {
         batasPH = resep.batasPH
         pewarnaTersimpan = resep.pewarna
         zatPembantuTersimpan = resep.zatPembantu
+        airTersimpan = resep.air
         self.jumlahKain = jumlahKain
         self.resep = resep
     }

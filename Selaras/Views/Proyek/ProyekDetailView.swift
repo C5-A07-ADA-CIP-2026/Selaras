@@ -110,7 +110,7 @@ struct ProyekDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 JudulBagian(teks: "Warna")
                 WarnaSwatchView(namaWarna: proyek.namaWarna, warnaHex: proyek.warnaHex)
-                ResepWarnaView(pewarna: proyek.pewarna, zatPembantu: proyek.zatPembantu)
+                ResepWarnaView(pewarna: proyek.pewarna, zatPembantu: proyek.zatPembantu, air: proyek.air > 0 ? proyek.air : nil)
             }
 
             BarisInfo(judul: "Jumlah Kain", nilai: "\(proyek.jumlahKain)", tebal: true)
@@ -159,6 +159,10 @@ struct ProyekDetailView: View {
         Task {
             async let minimum: Void = Task.sleep(for: .seconds(1.5))
             await viewModel.mulaiPindai()
+            guard viewModel.colorMeasurementError == nil else {
+                isMemulai = false
+                return
+            }
             try? await minimum
             isMemulai = false
         }
