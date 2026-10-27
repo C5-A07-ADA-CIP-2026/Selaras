@@ -3,21 +3,21 @@
 //  Selaras
 //
 
-/// Top-level sections shown in the tab bar. `Riwayat` is not a tab: it is pushed from `Resep`.
+/// Top-level sections shown in the tab bar. Proyek comes first; the recipe list is shown to users as "Warna".
 enum AppTab: CaseIterable {
-    case resep
     case proyek
+    case resep
 
     var title: String {
         switch self {
-        case .resep: "Resep"
+        case .resep: "Warna"
         case .proyek: "Proyek"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .resep: "fork.knife"
+        case .resep: "book"
         case .proyek: "folder"
         }
     }

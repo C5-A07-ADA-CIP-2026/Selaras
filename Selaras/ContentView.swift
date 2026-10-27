@@ -24,7 +24,7 @@ struct ContentView: View {
     private func view(for tab: AppTab) -> some View {
         switch tab {
         case .resep: ResepView()
-        case .proyek: ProyekView()
+        case .proyek: ProyekListView()
         }
     }
 }

@@ -8,8 +8,13 @@
 import SwiftUI
 
 extension Font {
-    static var judulBold: Font { .system(.headline, weight: .bold) }
-    static var labelBiasa: Font { .system(.headline) }
+    static var judulBold: Font {
+        .system(.headline, weight: .bold)
+    }
+
+    static var labelBiasa: Font {
+        .system(.headline)
+    }
 }
 
 struct KolomTeks: View {
@@ -115,6 +120,7 @@ struct DaftarBahan: View {
     let judul: String
     let labelTambah: String
     @Binding var bahan: [BahanInput]
+    let pilihanTersedia: [String]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -122,7 +128,46 @@ struct DaftarBahan: View {
                 .font(.judulBold)
 
             ForEach($bahan) { $item in
-                BarisBahan(kode: $item.kode, gram: $item.gram)
+                HStack(spacing: 12) {
+                    Menu {
+                        ForEach(pilihanTersedia, id: \.self) { opsi in
+                            Button {
+                                item.kode = opsi
+                            } label: {
+                                Text(opsi)
+                                    .foregroundColor(.black)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(item.kode.isEmpty ? "Pilih Kode" : item.kode)
+                                .foregroundColor(.black)
+                                .lineLimit(1)
+
+                            Spacer()
+
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.black)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    TextField("0", value: $item.gram, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 80)
+
+                    Text("g")
+                        .foregroundStyle(.primary)
+                }
             }
 
             Button {
@@ -152,11 +197,11 @@ struct BarisIsian<Isian: View>: View {
 
             Spacer()
 
-            isian
+            HStack(spacing: 6) {
+                isian
 
-            Text(satuan)
-                .font(.labelBiasa)
-                .frame(width: 30, alignment: .leading)
+                Text(satuan)
+            }
         }
     }
 }
@@ -164,7 +209,7 @@ struct BarisIsian<Isian: View>: View {
 struct BarisBatas: View {
     let label: String
     let satuan: String
-    @Binding var nilai: Double
+    @Binding var nilai: Double?
     let rentang: ClosedRange<Double>
 
     var body: some View {
@@ -175,7 +220,11 @@ struct BarisBatas: View {
                 .multilineTextAlignment(.center)
                 .frame(width: 60)
                 .onChange(of: nilai) { _, baru in
-                    nilai = min(max(baru, rentang.lowerBound), rentang.upperBound)
+                    guard let baru else { return }
+                    let terbatas = min(max(baru, rentang.lowerBound), rentang.upperBound)
+                    if terbatas != baru {
+                        nilai = terbatas
+                    }
                 }
         }
     }

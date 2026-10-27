@@ -16,19 +16,33 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
     static let serviceUUID = CBUUID(string: "4FAFC201-1FB5-459E-8FCC-C5C9C331914B")
     static let measurementCharacteristicUUID = CBUUID(string: "BEA57604-1C34-45B5-927A-94943E992383")
 
+    static let sensorNotFoundError = NSError(
+        domain: "BLEService",
+        code: 404,
+        userInfo: [NSLocalizedDescriptionKey: "Characteristic sensor tidak ditemukan"]
+    )
+
     private var centralManager: CBCentralManager?
+    /// Peripherals seen during the latest scan, by identifier, so `connect(to:)` can find the one the user picked.
+    private var scannedPeripherals: [UUID: CBPeripheral] = [:]
+    /// The name last reported for each peripheral of the latest scan.
+    private var reportedNames: [UUID: String] = [:]
+    /// The peripheral the app is (or is becoming) connected to.
     private var discoveredPeripheral: CBPeripheral?
-    private var measurementCharacteristic: CBCharacteristic?
+    private var pendingPeripheral: CBPeripheral?
+    var measurementCharacteristic: CBCharacteristic?
 
     private let discoveryTimeout: TimeInterval
     private let connectionTimeout: TimeInterval
 
     // Continuation untuk jembatan async/await ke callback delegate CoreBluetooth
-    private var discoveryContinuation: CheckedContinuation<Bool, any Error>?
+    private var scanContinuation: AsyncThrowingStream<DiscoveredDevice, any Error>.Continuation?
+    private var activeScan: UUID?
+    private var connectionAttempt: UUID?
     private var connectionContinuation: CheckedContinuation<Void, any Error>?
-    private var characteristicContinuation: CheckedContinuation<Void, any Error>?
-    private var measurementContinuation: CheckedContinuation<ColorMeasurement, any Error>?
-    private var measurementStreamContinuation: AsyncStream<ColorMeasurement>.Continuation?
+    var characteristicContinuation: CheckedContinuation<Void, any Error>?
+    var measurementContinuation: CheckedContinuation<ColorMeasurement, any Error>?
+    var measurementStreamContinuation: AsyncStream<ColorMeasurement>.Continuation?
 
     init(
         discoveryTimeout: TimeInterval = 10,
@@ -50,16 +64,20 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
 
     // MARK: - DeviceConnectionService Conformance
 
-    func discoverDevice() async throws -> Bool {
-        if let peripheral = discoveredPeripheral, peripheral.state == .connected {
-            let name = peripheral.name ?? "ESP32"
-            print("[BLE] ℹ️ Perangkat '\(name)' sudah dalam keadaan terhubung.")
-            return true
-        }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            self.discoveryContinuation?.resume(returning: false)
-            self.discoveryContinuation = continuation
+    func scanDevices() -> AsyncThrowingStream<DiscoveredDevice, any Error> {
+        AsyncThrowingStream { continuation in
+            finishScan(throwing: nil)
+            let scan = UUID()
+            activeScan = scan
+            scanContinuation = continuation
+            scannedPeripherals = [:]
+            reportedNames = [:]
+            continuation.onTermination = { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, self.activeScan == scan else { return }
+                    self.finishScan(throwing: nil)
+                }
+            }
 
             print("[BLE] 🔍 Memulai pencarian perangkat Selaras (Service UUID: \(Self.serviceUUID.uuidString))...")
             let manager = obtainCentralManager()
@@ -70,41 +88,68 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + self.discoveryTimeout) { [weak self] in
-                guard let self, let cont = discoveryContinuation else { return }
-                print("[BLE] ⏱️ Waktu pencarian habis (\(Int(discoveryTimeout)) detik). Perangkat tidak ditemukan.")
-                centralManager?.stopScan()
-                discoveryContinuation = nil
-                cont.resume(returning: false)
+                guard let self, activeScan == scan else { return }
+                print("[BLE] ⏱️ Pencarian selesai (\(Int(discoveryTimeout)) detik).")
+                finishScan(throwing: nil)
             }
         }
     }
 
-    func connectToDevice() async throws {
-        guard let peripheral = discoveredPeripheral else {
+    /// Ends the running scan, if any. `error` is delivered to whoever is iterating the stream.
+    private func finishScan(throwing error: (any Error)?) {
+        guard let continuation = scanContinuation else { return }
+        centralManager?.stopScan()
+        scanContinuation = nil
+        activeScan = nil
+        continuation.finish(throwing: error)
+    }
+
+    func connect(to device: DiscoveredDevice) async throws {
+        guard let peripheral = scannedPeripherals[device.id] else {
             let errorUserInfo = [NSLocalizedDescriptionKey: "Perangkat belum ditemukan"]
-            print("[BLE] ❌ Gagal menghubungkan: belum ada perangkat yang ditemukan.")
+            print("[BLE] ❌ Gagal menghubungkan: '\(device.nama)' tidak ada di hasil pencarian.")
             throw NSError(domain: "BLEService", code: 404, userInfo: errorUserInfo)
         }
 
         if peripheral.state == .connected {
-            let name = peripheral.name ?? "ESP32"
-            print("[BLE] ℹ️ Perangkat '\(name)' sudah dalam keadaan terhubung.")
+            print("[BLE] ℹ️ Perangkat '\(device.nama)' sudah dalam keadaan terhubung.")
+            select(peripheral)
             return
         }
 
-        let deviceName = peripheral.name ?? "ESP32"
-        print("[BLE] ⏳ Menghubungkan ke '\(deviceName)' [\(peripheral.identifier.uuidString)]...")
+        print("[BLE] ⏳ Menghubungkan ke '\(device.nama)' [\(peripheral.identifier.uuidString)]...")
 
-        try await withCheckedThrowingContinuation { continuation in
-            self.connectionContinuation?.resume(throwing: CancellationError())
-            self.connectionContinuation = continuation
-            let manager = obtainCentralManager()
-            manager.connect(peripheral, options: nil)
+        let attempt = UUID()
+        connectionAttempt = attempt
+        pendingPeripheral = peripheral
+        try await withTaskCancellationHandler {
+            try await performConnection(attempt: attempt)
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.abandonConnection(attempt: attempt)
+            }
+        }
+        select(peripheral)
+    }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + self.connectionTimeout) { [weak self] in
-                guard let self, let cont = connectionContinuation else { return }
+    /// Connects to `pendingPeripheral` and resumes when CoreBluetooth reports the result, or after the timeout.
+    private func performConnection(attempt: UUID) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            guard let peripheral = pendingPeripheral else {
+                continuation.resume(throwing: CancellationError())
+                return
+            }
+            connectionContinuation?.resume(throwing: CancellationError())
+            connectionContinuation = continuation
+            obtainCentralManager().connect(peripheral, options: nil)
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + connectionTimeout) { [weak self] in
+                guard let self, connectionAttempt == attempt, let cont = connectionContinuation else { return }
                 print("[BLE] ⏱️ Waktu koneksi habis. Membatalkan koneksi...")
-                centralManager?.cancelPeripheralConnection(peripheral)
+                if let peripheral = pendingPeripheral {
+                    centralManager?.cancelPeripheralConnection(peripheral)
+                }
+                pendingPeripheral = nil
                 connectionContinuation = nil
                 let timeoutError = NSError(
                     domain: "BLEService",
@@ -114,6 +159,27 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
                 cont.resume(throwing: timeoutError)
             }
         }
+    }
+
+    /// Makes `peripheral` the one the app reads from, dropping the previously selected one.
+    private func select(_ peripheral: CBPeripheral) {
+        if let previous = discoveredPeripheral, previous !== peripheral {
+            centralManager?.cancelPeripheralConnection(previous)
+        }
+        discoveredPeripheral = peripheral
+        measurementCharacteristic = nil
+        pendingPeripheral = nil
+    }
+
+    private func abandonConnection(attempt: UUID) {
+        guard connectionAttempt == attempt, let continuation = connectionContinuation else { return }
+        print("[BLE] 🛑 Koneksi dibatalkan oleh pengguna.")
+        connectionContinuation = nil
+        if let peripheral = pendingPeripheral {
+            centralManager?.cancelPeripheralConnection(peripheral)
+        }
+        pendingPeripheral = nil
+        continuation.resume(throwing: CancellationError())
     }
 
     func readInitialColorMeasurement() async throws -> ColorMeasurement {
@@ -127,11 +193,7 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
 
         try await obtainMeasurementCharacteristic(from: peripheral)
         guard let characteristic = measurementCharacteristic else {
-            throw NSError(
-                domain: "BLEService",
-                code: 404,
-                userInfo: [NSLocalizedDescriptionKey: "Characteristic sensor tidak ditemukan"]
-            )
+            throw Self.sensorNotFoundError
         }
         return try await withCheckedThrowingContinuation { continuation in
             measurementContinuation?.resume(throwing: CancellationError())
@@ -166,8 +228,34 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
         print("[BLE] 📡 Sedang memindai sinyal advertising BLE...")
         manager.scanForPeripherals(
             withServices: [Self.serviceUUID],
-            options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+            // Duplicates are needed so the scan response (which holds the name) is delivered too.
+            options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
         )
+        // The ESP32 stops advertising while connected, so a device this app is still connected to
+        // (e.g. the user left the form without saving) is only found this way.
+        for peripheral in manager.retrieveConnectedPeripherals(withServices: [Self.serviceUUID]) {
+            report(peripheral, advertisedName: nil)
+        }
+    }
+
+    /// Remembers `peripheral` and yields it to the running scan, again only when a real name replaces "Tanpa Nama".
+    private func report(_ peripheral: CBPeripheral, advertisedName: String?) {
+        // The ESP32 sends its name in the scan response, which can arrive after the first callback for the device.
+        let resolvedName = DiscoveredDevice.resolveName(
+            peripheralName: peripheral.name,
+            advertisedName: advertisedName
+        )
+        let name = resolvedName ?? DiscoveredDevice.unnamed
+        guard reportedNames[peripheral.identifier] != name else { return }
+        if reportedNames[peripheral.identifier] != nil, resolvedName == nil {
+            return
+        }
+        print("[BLE] ✨ Ditemukan: '\(name)' | UUID: \(peripheral.identifier.uuidString)")
+
+        reportedNames[peripheral.identifier] = name
+        scannedPeripherals[peripheral.identifier] = peripheral
+        peripheral.delegate = self
+        scanContinuation?.yield(DiscoveredDevice(id: peripheral.identifier, nama: name))
     }
 }
 
@@ -178,7 +266,7 @@ extension BLEDeviceConnectionService: CBCentralManagerDelegate {
         switch central.state {
         case .poweredOn:
             print("[BLE] 🟢 Bluetooth aktif dan siap digunakan.")
-            if discoveryContinuation != nil {
+            if scanContinuation != nil {
                 startScanning(manager: central)
             }
         case .poweredOff:
@@ -188,8 +276,7 @@ extension BLEDeviceConnectionService: CBCentralManagerDelegate {
                 code: central.state.rawValue,
                 userInfo: [NSLocalizedDescriptionKey: "Bluetooth tidak aktif"]
             )
-            discoveryContinuation?.resume(throwing: error)
-            discoveryContinuation = nil
+            finishScan(throwing: error)
         case .unauthorized:
             print("[BLE] ⚠️ Izin akses Bluetooth ditolak.")
             let error = NSError(
@@ -197,8 +284,7 @@ extension BLEDeviceConnectionService: CBCentralManagerDelegate {
                 code: central.state.rawValue,
                 userInfo: [NSLocalizedDescriptionKey: "Izin Bluetooth ditolak"]
             )
-            discoveryContinuation?.resume(throwing: error)
-            discoveryContinuation = nil
+            finishScan(throwing: error)
         case .unsupported:
             print("[BLE] ⚠️ Perangkat tidak mendukung Bluetooth Low Energy.")
             let error = NSError(
@@ -206,30 +292,19 @@ extension BLEDeviceConnectionService: CBCentralManagerDelegate {
                 code: central.state.rawValue,
                 userInfo: [NSLocalizedDescriptionKey: "Perangkat tidak mendukung Bluetooth"]
             )
-            discoveryContinuation?.resume(throwing: error)
-            discoveryContinuation = nil
+            finishScan(throwing: error)
         default:
             print("[BLE] ℹ️ Status Bluetooth berubah ke: \(central.state.rawValue)")
         }
     }
 
     func centralManager(
-        _ central: CBCentralManager,
+        _: CBCentralManager,
         didDiscover peripheral: CBPeripheral,
         advertisementData: [String: Any],
-        rssi RSSI: NSNumber
+        rssi _: NSNumber
     ) {
-        let name = peripheral.name
-            ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String)
-            ?? "Tanpa Nama"
-        print("[BLE] ✨ Ditemukan: '\(name)' | UUID: \(peripheral.identifier.uuidString) | RSSI: \(RSSI) dBm")
-
-        central.stopScan()
-        discoveredPeripheral = peripheral
-        peripheral.delegate = self
-
-        discoveryContinuation?.resume(returning: true)
-        discoveryContinuation = nil
+        report(peripheral, advertisedName: advertisementData[CBAdvertisementDataLocalNameKey] as? String)
     }
 
     func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -257,104 +332,8 @@ extension BLEDeviceConnectionService: CBCentralManagerDelegate {
     func centralManager(_: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error _: (any Error)?) {
         let name = peripheral.name ?? "ESP32"
         print("[BLE] 🔌 Perangkat '\(name)' terputus.")
+        guard peripheral === discoveredPeripheral else { return }
         discoveredPeripheral = nil
         measurementCharacteristic = nil
-    }
-}
-
-// MARK: - CBPeripheralDelegate
-
-extension BLEDeviceConnectionService: CBPeripheralDelegate {
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: (any Error)?) {
-        if let error {
-            print("[BLE] ❌ Gagal menemukan service: \(error.localizedDescription)")
-            characteristicContinuation?.resume(throwing: error)
-            characteristicContinuation = nil
-            return
-        }
-        guard let services = peripheral.services else { return }
-        for service in services {
-            print("[BLE] 📦 Ditemukan service: \(service.uuid.uuidString)")
-            peripheral.discoverCharacteristics(nil, for: service)
-        }
-    }
-
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: (any Error)?) {
-        if let error {
-            print("[BLE] ❌ Gagal menemukan characteristic: \(error.localizedDescription)")
-            characteristicContinuation?.resume(throwing: error)
-            characteristicContinuation = nil
-            return
-        }
-        guard let characteristics = service.characteristics else {
-            let error = NSError(
-                domain: "BLEService",
-                code: 404,
-                userInfo: [NSLocalizedDescriptionKey: "Characteristic sensor tidak ditemukan"]
-            )
-            characteristicContinuation?.resume(throwing: error)
-            characteristicContinuation = nil
-            return
-        }
-        for characteristic in characteristics {
-            print("[BLE] 🔑 Ditemukan characteristic: \(characteristic.uuid.uuidString)")
-            guard characteristic.uuid == Self.measurementCharacteristicUUID else { continue }
-            measurementCharacteristic = characteristic
-            peripheral.setNotifyValue(true, for: characteristic)
-            characteristicContinuation?.resume(returning: ())
-            characteristicContinuation = nil
-        }
-        if measurementCharacteristic == nil {
-            let error = NSError(
-                domain: "BLEService",
-                code: 404,
-                userInfo: [NSLocalizedDescriptionKey: "Characteristic sensor tidak ditemukan"]
-            )
-            characteristicContinuation?.resume(throwing: error)
-            characteristicContinuation = nil
-        }
-    }
-
-    func peripheral(
-        _: CBPeripheral,
-        didUpdateValueFor characteristic: CBCharacteristic,
-        error: (any Error)?
-    ) {
-        guard characteristic.uuid == Self.measurementCharacteristicUUID else { return }
-
-        if let error {
-            measurementContinuation?.resume(throwing: error)
-            measurementContinuation = nil
-            return
-        }
-
-        guard let data = characteristic.value else {
-            let error = NSError(
-                domain: "BLEService",
-                code: 204,
-                userInfo: [NSLocalizedDescriptionKey: "ESP32 mengirim payload kosong"]
-            )
-            measurementContinuation?.resume(throwing: error)
-            measurementContinuation = nil
-            return
-        }
-
-        let rawPayload = String(data: data, encoding: .utf8) ?? "<bukan UTF-8>"
-        let hexPayload = data.map { String(format: "%02X", $0) }.joined(separator: " ")
-        print("[BLE] 📦 Payload diterima: \(rawPayload)")
-        print("[BLE] 🔢 Bytes payload: \(hexPayload)")
-
-        do {
-            let measurement = try JSONDecoder().decode(ColorMeasurement.self, from: data)
-            print(
-                "[BLE] 🎨 AS7341 visibleAverage=\(measurement.visibleAverage), " +
-                    "clear=\(measurement.clear), nir=\(measurement.nir)"
-            )
-            measurementStreamContinuation?.yield(measurement)
-            measurementContinuation?.resume(returning: measurement)
-        } catch {
-            measurementContinuation?.resume(throwing: error)
-        }
-        measurementContinuation = nil
     }
 }
