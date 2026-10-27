@@ -1,6 +1,6 @@
 # Selaras
 
-An iOS app built by a three-person team. Pages: **Resep** (recipes, the home tab), **Proyek** (projects, second tab), and **Riwayat** (history, opened from a button at the top right of Resep).
+An iOS app built by a three-person team. Tabs: **Proyek** (projects, the home tab) and **Warna** (the recipe list, code name `Resep`, second tab). Proyek lists active and inactive projects; inactive ones are finished projects and replace the old Riwayat page.
 
 ## Team
 
@@ -8,11 +8,12 @@ An iOS app built by a three-person team. Pages: **Resep** (recipes, the home tab
 |------|-------|--------|
 | Resep | Dina | `feat/resep` |
 | Proyek | Hana | `feat/proyek` |
-| Riwayat, and tests for Proyek | Fany | `feat/riwayat` |
+| Inactive projects (formerly Riwayat), and tests for Proyek | Fany | `feat/riwayat` |
 
 ## Architecture
 
-- Use MVVM with one folder per layer: `Selaras/Views/<Feature>/<Feature>View.swift`, `Selaras/ViewModels/<Feature>ViewModel.swift` and `Selaras/Models/<Feature>Model.swift`. `Views/` has placeholder views for Resep, Proyek and Riwayat; `ViewModels/` and `Models/` start empty (only a placeholder `.swift` file) and are filled test-first by each feature's owner.
+- Use MVVM with one folder per layer: `Selaras/Views/<Feature>/<Feature>View.swift`, `Selaras/ViewModels/<Feature>ViewModel.swift` and `Selaras/Models/<Feature>Model.swift`. Each feature's owner fills these test-first.
+- Persistence is SwiftData with one shared schema in `Selaras/Shared/SelarasSchema.swift`, which lists the entities `Resep` and `Proyek`. Resep saves recipes. Proyek creates a `Proyek` from a name, a connected device and a `Resep` (a snapshot of its color, limits and ingredients); scanning and finishing it moves it from the active to the inactive list.
 - Tests mirror the layers: `SelarasTests/ViewModels/` and `SelarasTests/Models/`.
 - Shared components and extensions go in `Selaras/Shared/`. Name files with the feature prefix and keep each feature's views in its own `Views/<Feature>/` folder to avoid merge conflicts.
 - Use test-driven development with Swift Testing: write tests before implementation and cover changed behavior.
