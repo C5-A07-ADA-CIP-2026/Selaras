@@ -35,11 +35,21 @@ final class ProyekDetailViewModel: ObservableObject {
             colorConcentrationLimit: proyek.batasKepekatan,
             waterPHLimit: proyek.batasPH
         )
+        // A scan that was already started on this project is picked up where it was left.
+        if proyek.status == .aktif, let baseline = proyek.visibleAverageAwal {
+            initialVisibleAverage = baseline
+            measurements = ProyekColorMeasurements(
+                colorConcentrationLimit: proyek.batasKepekatan,
+                waterPHLimit: proyek.batasPH,
+                initialWaterPH: proyek.phAwal
+            )
+            isDataScanned = true
+        }
     }
 
-    /// Reads the baseline measurement and starts streaming updates.
+    /// Reads the baseline measurement, saves it on the project and starts streaming updates.
     /// Does nothing for a finished project or while a scan is already reading the device.
-    func mulaiPindai() async {
+    func mulaiPindai(in persistence: (any ModelPersisting)? = nil) async {
         guard proyek.status == .aktif, !isScanning else { return }
         isScanning = true
         defer { isScanning = false }
@@ -47,6 +57,7 @@ final class ProyekDetailViewModel: ObservableObject {
         do {
             let initial = try await service.readInitialColorMeasurement()
             beginMeasuring(from: initial)
+            saveBaseline(initial, in: persistence)
         } catch is CancellationError {
             // A cancelled read is not a failure.
             return
@@ -63,6 +74,13 @@ final class ProyekDetailViewModel: ObservableObject {
         measurementTask = nil
     }
 
+    /// Resumes the live stream of a project whose scan was started earlier, using the saved baseline.
+    /// Does nothing for an unscanned or finished project, or when the stream is already running.
+    func lanjutkanPengukuran() {
+        guard proyek.status == .aktif, isDataScanned, measurementTask == nil else { return }
+        startStreaming()
+    }
+
     private func beginMeasuring(from initial: ColorMeasurement) {
         initialVisibleAverage = initial.visibleAverage
         warningTracker.reset()
@@ -72,7 +90,20 @@ final class ProyekDetailViewModel: ObservableObject {
             initialWaterPH: initial.waterPH
         )
         isDataScanned = true
+        startStreaming()
+    }
 
+    private func saveBaseline(_ initial: ColorMeasurement, in persistence: (any ModelPersisting)?) {
+        proyek.visibleAverageAwal = initial.visibleAverage
+        proyek.phAwal = initial.waterPH
+        do {
+            try persistence?.save()
+        } catch {
+            saveError = "Gagal menyimpan proyek: \(error.localizedDescription)"
+        }
+    }
+
+    private func startStreaming() {
         measurementTask?.cancel()
         measurementTask = Task { [weak self] in
             guard let self else { return }
@@ -155,7 +186,7 @@ final class ProyekDetailViewModel: ObservableObject {
     @discardableResult
     func pindahPerangkat(_ device: DiscoveredDevice, in persistence: some ModelPersisting) async -> Bool {
         guard gantiPerangkat(device, in: persistence) else { return false }
-        await mulaiPindai()
+        await mulaiPindai(in: persistence)
         return true
     }
 
