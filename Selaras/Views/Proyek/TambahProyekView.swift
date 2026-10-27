@@ -13,6 +13,7 @@ struct TambahProyekView: View {
     @State private var viewModel = TambahProyekViewModel()
     @State private var isShowingDeviceList = false
     @State private var isShowingPilihResep = false
+    @FocusState private var isNamaFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -27,6 +28,7 @@ struct TambahProyekView: View {
                 .padding(.vertical, 8)
             }
             .scrollDismissesKeyboard(.interactively)
+            .task { isNamaFocused = true }
             .navigationTitle("Tambahkan Proyek")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -59,8 +61,7 @@ struct TambahProyekView: View {
             isPresented: saveErrorIsPresented,
             presenting: viewModel.saveError
         ) { _ in
-            Button("Tutup", role: .cancel) {
-            }
+            Button("Tutup", role: .cancel) {}
         } message: { error in
             Text(error)
         }
@@ -71,6 +72,9 @@ struct TambahProyekView: View {
             JudulBagian(teks: "Nama Proyek")
             TextField("Cth: Seragam RT 5", text: $viewModel.nama)
                 .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.words)
+                .focused($isNamaFocused)
                 .submitLabel(.done)
         }
     }
