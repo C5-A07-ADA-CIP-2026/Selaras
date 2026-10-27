@@ -57,7 +57,8 @@ struct HalamanTambahResep: View {
             DaftarBahan(
                 judul: "Kode Pewarna Naphtol",
                 labelTambah: "Tambah Pewarna",
-                bahan: $viewModel.pewarna
+                bahan: $viewModel.pewarna,
+                pilihanTersedia: viewModel.daftarPilihanPewarna
             )
             
             BarisIsian(label: "Air", satuan: "ml", labelTebal: true) {
@@ -71,7 +72,8 @@ struct HalamanTambahResep: View {
             DaftarBahan(
                 judul: "Zat Pembantu",
                 labelTambah: "Tambah Zat Pembantu",
-                bahan: $viewModel.zatPembantu
+                bahan: $viewModel.zatPembantu,
+                pilihanTersedia: viewModel.daftarPilihanZatPembantu
             )
         }
     }

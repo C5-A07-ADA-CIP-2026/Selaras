@@ -120,6 +120,7 @@ struct DaftarBahan: View {
     let judul: String
     let labelTambah: String
     @Binding var bahan: [BahanInput]
+    let pilihanTersedia: [String]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -127,7 +128,46 @@ struct DaftarBahan: View {
                 .font(.judulBold)
 
             ForEach($bahan) { $item in
-                BarisBahan(kode: $item.kode, gram: $item.gram)
+                HStack(spacing: 12) {
+                    Menu {
+                        ForEach(pilihanTersedia, id: \.self) { opsi in
+                            Button {
+                                item.kode = opsi
+                            } label: {
+                                Text(opsi)
+                                    .foregroundColor(.black)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(item.kode.isEmpty ? "Pilih Kode" : item.kode)
+                                .foregroundColor(.black)
+                                .lineLimit(1)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.black)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    TextField("0", value: $item.gram, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 80)
+                    
+                    Text("g")
+                        .foregroundStyle(.primary)
+                }
             }
 
             Button {
@@ -157,11 +197,11 @@ struct BarisIsian<Isian: View>: View {
 
             Spacer()
 
-            isian
-
-            Text(satuan)
-                .font(.labelBiasa)
-                .frame(width: 30, alignment: .leading)
+            HStack(spacing: 6) {
+                isian
+                
+                Text(satuan)
+            }
         }
     }
 }
