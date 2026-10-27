@@ -38,6 +38,9 @@ struct ResepView: View {
                     HalamanTambahResep(tampilSebagaiSheet: true)
                 }
             }
+            .navigationDestination(for: Resep.self) { resep in
+                HalamanTambahResep(resep: resep)
+            }
     }
     
     @ViewBuilder
@@ -66,9 +69,6 @@ struct ResepView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-        }
-        .navigationDestination(for: Resep.self) { resep in
-            HalamanTambahResep(resep: resep)
         }
     }
     

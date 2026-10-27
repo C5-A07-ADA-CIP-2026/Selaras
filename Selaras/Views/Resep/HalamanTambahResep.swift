@@ -128,7 +128,7 @@ struct HalamanTambahResep: View {
     private func simpan() {
         do {
             try viewModel.simpan(context: modelContext)
-            if tampilSebagaiSheet { dismiss() }
+            dismiss()
         } catch {
             gagalMenyimpan = true
         }
@@ -153,7 +153,6 @@ struct HalamanTambahResep: View {
         ToolbarItem(placement: .confirmationAction) {
             Button {
                 simpan()
-                if tampilSebagaiSheet { dismiss() }
             } label: {
                 Label("Simpan", systemImage: "checkmark")
             }
