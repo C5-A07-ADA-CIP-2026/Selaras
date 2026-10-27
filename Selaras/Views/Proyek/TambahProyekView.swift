@@ -81,10 +81,12 @@ struct TambahProyekView: View {
 
     private var perangkatSection: some View {
         VStack(alignment: .leading, spacing: 16) {
+            JudulBagian(teks: "Perangkat")
+
             if let perangkat = viewModel.perangkat {
-                PerangkatBaris(nama: perangkat.nama)
-            } else {
-                JudulBagian(teks: "Perangkat")
+                Text(perangkat.nama)
+                    .font(.headline)
+                    .foregroundStyle(.blue)
             }
 
             Button {
