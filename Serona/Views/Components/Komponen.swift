@@ -116,6 +116,14 @@ struct BarisBahan: View {
     }
 }
 
+enum UkuranKolom {
+    static let lebarAngka: CGFloat = 85
+    static let lebarSatuan: CGFloat = 24
+    static let spasi: CGFloat = 12
+    /// Lebar kolom angka kalau tidak ada satuan: menggantikan ruang satuan di kanan.
+    static let lebarTanpaSatuan: CGFloat = lebarAngka + spasi + lebarSatuan
+}
+
 struct DaftarBahan: View {
     let judul: String
     let labelTambah: String
@@ -163,10 +171,11 @@ struct DaftarBahan: View {
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.center)
-                        .frame(width: 80)
+                        .frame(width: UkuranKolom.lebarAngka)
 
-                    Text("g")
+                    Text("gr")
                         .foregroundStyle(.primary)
+                        .frame(width: UkuranKolom.lebarSatuan, alignment: .leading)
                 }
             }
 
@@ -186,7 +195,7 @@ struct DaftarBahan: View {
 
 struct BarisIsian<Isian: View>: View {
     let label: String
-    let satuan: String
+    var satuan: String?
     var labelTebal = false
     @ViewBuilder let isian: Isian
 
@@ -194,13 +203,16 @@ struct BarisIsian<Isian: View>: View {
         HStack {
             Text(label)
                 .font(labelTebal ? .judulBold : .labelBiasa)
-
+            
             Spacer()
-
-            HStack(spacing: 6) {
+            
+            HStack(spacing: UkuranKolom.spasi) {
                 isian
-
-                Text(satuan)
+                
+                if let satuan {
+                    Text(satuan)
+                        .frame(width: UkuranKolom.lebarSatuan, alignment: .leading)
+                }
             }
         }
     }
@@ -208,17 +220,16 @@ struct BarisIsian<Isian: View>: View {
 
 struct BarisBatas: View {
     let label: String
-    let satuan: String
     @Binding var nilai: Double?
     let rentang: ClosedRange<Double>
 
     var body: some View {
-        BarisIsian(label: label, satuan: satuan) {
+        BarisIsian(label: label) {
             TextField("0", value: $nilai, format: .number)
                 .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.center)
-                .frame(width: 60)
+                .frame(width: UkuranKolom.lebarTanpaSatuan)
                 .onChange(of: nilai) { _, baru in
                     guard let baru else { return }
                     let terbatas = min(max(baru, rentang.lowerBound), rentang.upperBound)
