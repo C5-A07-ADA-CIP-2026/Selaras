@@ -1,4 +1,4 @@
-# Selaras
+# Serona
 
 An iOS app built by a three-person team. Tabs: **Proyek** (projects, the home tab) and **Warna** (the recipe list, code name `Resep`, second tab). Proyek lists active and inactive projects; inactive ones are finished projects and replace the old Riwayat page.
 
@@ -12,10 +12,10 @@ An iOS app built by a three-person team. Tabs: **Proyek** (projects, the home ta
 
 ## Architecture
 
-- Use MVVM with one folder per layer: `Selaras/Views/<Feature>/<Feature>View.swift`, `Selaras/ViewModels/<Feature>ViewModel.swift` and `Selaras/Models/<Feature>Model.swift`. Each feature's owner fills these test-first.
-- Persistence is SwiftData with one shared schema in `Selaras/Shared/SelarasSchema.swift`, which lists the entities `Resep` and `Proyek`. Resep saves recipes. Proyek creates a `Proyek` from a name, a connected device and a `Resep` (a snapshot of its color, limits and ingredients); scanning and finishing it moves it from the active to the inactive list.
-- Tests mirror the layers: `SelarasTests/ViewModels/` and `SelarasTests/Models/`.
-- Shared components and extensions go in `Selaras/Shared/`. Name files with the feature prefix and keep each feature's views in its own `Views/<Feature>/` folder to avoid merge conflicts.
+- Use MVVM with one folder per layer: `Serona/Views/<Feature>/<Feature>View.swift`, `Serona/ViewModels/<Feature>ViewModel.swift` and `Serona/Models/<Feature>Model.swift`. Each feature's owner fills these test-first.
+- Persistence is SwiftData with one shared schema in `Serona/Shared/SeronaSchema.swift`, which lists the entities `Resep` and `Proyek`. Resep saves recipes. Proyek creates a `Proyek` from a name, a connected device and a `Resep` (a snapshot of its color, limits and ingredients); scanning and finishing it moves it from the active to the inactive list.
+- Tests mirror the layers: `SeronaTests/ViewModels/` and `SeronaTests/Models/`.
+- Shared components and extensions go in `Serona/Shared/`. Name files with the feature prefix and keep each feature's views in its own `Views/<Feature>/` folder to avoid merge conflicts.
 - Use test-driven development with Swift Testing: write tests before implementation and cover changed behavior.
 - Ask before adding dependencies; prefer first-party Apple frameworks.
 

@@ -1,4 +1,4 @@
-# Selaras
+# Serona
 
 Aplikasi iOS yang dikerjakan oleh tim 3 orang. Halamannya:
 
@@ -19,7 +19,7 @@ Butuh Xcode 27 dan iOS 27.
 
 ```bash
 brew bundle
-open Selaras.xcodeproj
+open Serona.xcodeproj
 ```
 
 `brew bundle` memasang SwiftLint dan SwiftFormat dari `Brewfile`.
@@ -27,19 +27,19 @@ open Selaras.xcodeproj
 ## Struktur
 
 ```
-Selaras/
-├── SelarasApp.swift                 ModelContainer SwiftData
+Serona/
+├── SeronaApp.swift                 ModelContainer SwiftData
 ├── ContentView.swift                TabView (Proyek, Warna)
 ├── AppTab.swift
 ├── Extensions/                      Color+hex, String
-├── Shared/                          SelarasSchema (entitas SwiftData), ResepRowView
+├── Shared/                          SeronaSchema (entitas SwiftData), ResepRowView
 ├── Views/
 │   ├── Components/                  komponen form bersama
 │   ├── Resep/                       ResepView, HalamanTambahResep
 │   └── Proyek/                      daftar, detail, sheet tambah proyek, sheet perangkat
 ├── ViewModels/                      Resep, TambahProyek, ProyekDetail, DeviceList
 └── Models/                          Resep, Proyek, koneksi perangkat BLE
-SelarasTests/
+SeronaTests/
 ├── ViewModels/                      tes ViewModel
 ├── Models/                          tes Model
 └── Support/                         helper tes (container in-memory, stub perangkat)
@@ -47,9 +47,9 @@ SelarasTests/
 
 ### Alur data: Warna → Proyek
 
-Tab Warna dan Proyek berbagi satu penyimpanan SwiftData (`Selaras/Shared/SelarasSchema.swift`, entitas `Resep` dan `Proyek`). Resep disimpan lewat form "Tambah Warna". Di tab Proyek, tombol + membuka sheet "Tambahkan Proyek": isi nama, pilih perangkat dari daftar hasil pindai Bluetooth ("Hubungkan"), pilih satu Resep (warna, batas kepekatan dan pH, serta bahannya disalin), dan jumlah kain. Proyek baru berstatus **Aktif**. Di halaman detail, "Mulai Pindai" mengambil pembacaan sensor sebagai baseline 100%, lalu "Selesaikan Proyek" menyimpan hasil akhir dan memindahkannya ke **Nonaktif**. Karena snapshot, proyek tetap ada walau Resep-nya dihapus. Proyek lama yang disimpan sebelum ada status dibaca sebagai Nonaktif.
+Tab Warna dan Proyek berbagi satu penyimpanan SwiftData (`Serona/Shared/SeronaSchema.swift`, entitas `Resep` dan `Proyek`). Resep disimpan lewat form "Tambah Warna". Di tab Proyek, tombol + membuka sheet "Tambahkan Proyek": isi nama, pilih perangkat dari daftar hasil pindai Bluetooth ("Hubungkan"), pilih satu Resep (warna, batas kepekatan dan pH, serta bahannya disalin), dan jumlah kain. Proyek baru berstatus **Aktif**. Di halaman detail, "Mulai Pindai" mengambil pembacaan sensor sebagai baseline 100%, lalu "Selesaikan Proyek" menyimpan hasil akhir dan memindahkannya ke **Nonaktif**. Karena snapshot, proyek tetap ada walau Resep-nya dihapus. Proyek lama yang disimpan sebelum ada status dibaca sebagai Nonaktif.
 
-Arsitektur MVVM satu folder per layer, test-first dengan Swift Testing: tulis tes dulu, lalu ViewModel dan Model-nya. Komponen yang dipakai bersama taruh di `Selaras/Shared/`. Detail aturan ada di [AGENTS.md](AGENTS.md).
+Arsitektur MVVM satu folder per layer, test-first dengan Swift Testing: tulis tes dulu, lalu ViewModel dan Model-nya. Komponen yang dipakai bersama taruh di `Serona/Shared/`. Detail aturan ada di [AGENTS.md](AGENTS.md).
 
 ## Branch dan PR
 
@@ -77,7 +77,7 @@ Aturan UI (lengkap di `.agents/skills/hig-compliance/SKILL.md`):
 
 ## ESP32 dan AS7341
 
-Sketch Arduino ada di [selaras_esp32_connectble/selaras_esp32_connectble.ino](selaras_esp32_connectble/selaras_esp32_connectble.ino).
+Sketch Arduino ada di [serona_esp32_connectble/serona_esp32_connectble.ino](serona_esp32_connectble/serona_esp32_connectble.ino).
 
 1. Pasang library **Adafruit AS7341** melalui Arduino Library Manager. Library ini akan memasang dependency I2C yang dibutuhkan.
 2. Untuk **ESP32C3 Dev Module** pada sketch ini, hubungkan:
@@ -110,5 +110,5 @@ Batas kepekatan warna adalah **80%**. Jika nilai turun di bawah 80%, aplikasi me
 
 Script dan shared scheme sudah ada di repo. Workflow dibuat manual di Xcode (Product → Xcode Cloud):
 
-1. **PR checks**: start condition pull request ke `dev`, `staging`, dan `main`. Action: Test scheme `Selaras`.
+1. **PR checks**: start condition pull request ke `dev`, `staging`, dan `main`. Action: Test scheme `Serona`.
 2. **TestFlight**: start condition perubahan pada branch rilis. Action: Archive, lalu post-action TestFlight (Internal Testing).
