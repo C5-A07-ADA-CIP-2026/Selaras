@@ -21,8 +21,8 @@ struct TambahProyekView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     namaField
                     perangkatSection
-                    warnaSection
                     JumlahKainBaris(jumlahKain: $viewModel.jumlahKain)
+                    warnaSection
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 8)
@@ -92,11 +92,8 @@ struct TambahProyekView: View {
             Button {
                 isShowingDeviceList = true
             } label: {
-                Label(
-                    viewModel.perangkat == nil ? "Tambah Perangkat" : "Ganti Perangkat",
-                    systemImage: viewModel.perangkat == nil ? "plus" : "arrow.triangle.2.circlepath"
-                )
-                .frame(maxWidth: .infinity)
+                Text(viewModel.perangkat == nil ? "Pilih Perangkat" : "Ganti Perangkat")
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -116,7 +113,7 @@ struct TambahProyekView: View {
                 Button {
                     isShowingPilihResep = true
                 } label: {
-                    Label("Tambah Warna", systemImage: "plus")
+                    Text("Pilih Warna")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
