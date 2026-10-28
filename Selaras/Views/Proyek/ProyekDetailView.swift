@@ -118,9 +118,14 @@ struct ProyekDetailView: View {
                     JudulBagian(teks: "Warna")
                     Spacer()
                     if isLarutanMenurun {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .foregroundStyle(Color.peringatan)
-                            .accessibilityLabel("Kualitas larutan menurun")
+                        Button {
+                            viewModel.tampilkanQualityAlert()
+                        } label: {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundStyle(Color.peringatan)
+                        }
+                        .accessibilityLabel("Kualitas larutan menurun")
+                        .accessibilityHint("Menampilkan peringatan")
                     }
                 }
                 WarnaSwatchView(namaWarna: proyek.namaWarna, warnaHex: proyek.warnaHex)
@@ -153,7 +158,7 @@ struct ProyekDetailView: View {
                 )
             }
             if isLarutanMenurun {
-                LarutanMenurunBanner()
+                LarutanMenurunBanner { viewModel.tampilkanQualityAlert() }
             }
         }
     }

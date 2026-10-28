@@ -72,7 +72,7 @@ struct WarnaSwatchView: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(hex: warnaHex))
                 .frame(maxWidth: .infinity)
-                .frame(height: 60)
+                .frame(height: 80)
                 .overlay(alignment: .topTrailing) {
                     if let onHapus {
                         Button(action: onHapus) {
