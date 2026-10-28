@@ -253,6 +253,11 @@ final class ProyekDetailViewModel: ObservableObject {
         colorConcentrationWarning = nil
     }
 
+    /// Shows the alert again for whatever is below its limit right now (the user dismissed it earlier).
+    func tampilkanQualityAlert() {
+        qualityAlert = makeQualityAlert()
+    }
+
     func clearQualityAlert() {
         guard qualityAlert != nil else { return }
         qualityAlert = nil

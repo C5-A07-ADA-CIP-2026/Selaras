@@ -121,4 +121,41 @@ struct ProyekDetailQualityAlertTests {
         let didAlertAgain = await waitUntil { viewModel.qualityAlert != nil }
         #expect(didAlertAgain)
     }
+
+    @Test("The alert can be shown again after it was dismissed while a reading is still low")
+    func alertCanBeReopened() async {
+        let (viewModel, liveReadings) = await makeLiveViewModel()
+        liveReadings.yield(ColorMeasurement(visibleAverage: 720, clear: 1200, nir: 200, waterPH: 9))
+        _ = await waitUntil { viewModel.qualityAlert != nil }
+        viewModel.clearQualityAlert()
+
+        viewModel.tampilkanQualityAlert()
+
+        #expect(viewModel.qualityAlert?.issue == .keduanya)
+    }
+
+    @Test("Reopening shows what is low right now")
+    func reopenedAlertFollowsCurrentReadings() async {
+        let (viewModel, liveReadings) = await makeLiveViewModel()
+        liveReadings.yield(ColorMeasurement(visibleAverage: 720, clear: 1200, nir: 200, waterPH: 9))
+        _ = await waitUntil { viewModel.qualityAlert != nil }
+        viewModel.clearQualityAlert()
+        liveReadings.yield(ColorMeasurement(visibleAverage: 900, clear: 1200, nir: 200, waterPH: 9))
+        _ = await waitUntil { !viewModel.isConcentrationLow }
+
+        viewModel.tampilkanQualityAlert()
+
+        #expect(viewModel.qualityAlert?.issue == .phAir)
+    }
+
+    @Test("There is nothing to reopen while no reading is low")
+    func nothingToReopen() async {
+        let (viewModel, liveReadings) = await makeLiveViewModel()
+        liveReadings.yield(ColorMeasurement(visibleAverage: 900, clear: 1200, nir: 200, waterPH: 11))
+        _ = await waitUntil { viewModel.latestWaterPH == 11 }
+
+        viewModel.tampilkanQualityAlert()
+
+        #expect(viewModel.qualityAlert == nil)
+    }
 }
