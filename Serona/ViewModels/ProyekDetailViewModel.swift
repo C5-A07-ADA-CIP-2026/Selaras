@@ -186,8 +186,27 @@ final class ProyekDetailViewModel: ObservableObject {
         }
 
         // The sheet shows once per dip; the red rows and banner follow the readings.
-        if startsNewDip {
-            qualityAlert = makeQualityAlert()
+//        if startsNewDip {
+//            qualityAlert = makeQualityAlert()
+//        }
+        
+        // Merge alerts without trigerring a full reset
+        if isConcentrationLow || isWaterPHLow {
+            let currentIssue: QualityIssue = switch (isConcentrationLow, isWaterPHLow) {
+            case (true, true): .keduanya
+            case (true, false): .kepekatan
+            case(false, true): .phAir
+            case(false, false): .kepekatan
+            }
+            
+            if let existing = qualityAlert {
+                let combinedIssue = existing.issue.combining(with: currentIssue)
+                if combinedIssue != existing.issue {
+                    qualityAlert = makeQualityAlert(for: combinedIssue)
+                }
+            } else if startsNewDip {
+                qualityAlert = makeQualityAlert(for: currentIssue)
+            }
         }
         
         let currentPH = measurement.waterPH ?? 12.0
@@ -244,24 +263,17 @@ final class ProyekDetailViewModel: ObservableObject {
         self.checkpoint1Absorbansi = nil
         self.statusProses = .monitoring
     }
-
-    private func makeQualityAlert() -> QualityAlert? {
-        switch (isConcentrationLow, isWaterPHLow) {
-        case (true, true):
-            QualityAlert(issue: .keduanya, message: MeasurementWarningTracker.bothMessage)
-        case (true, false):
-            QualityAlert(
-                issue: .kepekatan,
-                message: MeasurementWarningTracker.concentrationMessage(limit: measurements.colorConcentrationLimit)
-            )
-        case (false, true):
-            QualityAlert(
-                issue: .phAir,
-                message: MeasurementWarningTracker.waterPHMessage(limit: measurements.waterPHLimit)
-            )
-        case (false, false):
-            nil
+    
+    private func makeQualityAlert(for issue: QualityIssue) -> QualityAlert {
+        let message = switch issue {
+        case .keduanya:
+            MeasurementWarningTracker.bothMessage
+        case .kepekatan:
+            MeasurementWarningTracker.concentrationMessage(limit: measurements.colorConcentrationLimit)
+        case .phAir:
+            MeasurementWarningTracker.waterPHMessage(limit: measurements.waterPHLimit)
         }
+        return QualityAlert(issue: issue, message: message)
     }
 
     /// Finishes the scanned project: stores the final readings and moves it to the inactive list.
@@ -326,9 +338,9 @@ final class ProyekDetailViewModel: ObservableObject {
     }
 
     /// Shows the alert again for whatever is below its limit right now (the user dismissed it earlier).
-    func tampilkanQualityAlert() {
-        qualityAlert = makeQualityAlert()
-    }
+//    func tampilkanQualityAlert() {
+//        qualityAlert = makeQualityAlert()
+//    }
 
     func clearQualityAlert() {
         guard qualityAlert != nil else { return }

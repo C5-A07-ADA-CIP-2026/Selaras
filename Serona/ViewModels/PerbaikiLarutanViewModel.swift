@@ -20,17 +20,40 @@ final class PerbaikiLarutanViewModel {
     static let gramSodaAbu = 10
     static let gramPewarna = 10
 
-    let steps: [PerbaikiStep]
+    private(set) var issue: QualityIssue
+    private(set) var steps: [PerbaikiStep]
     var jumlahAir: Double = 1.0
     private(set) var isFinished = false
-    private var activeIndex = 0
+    private(set) var activeIndex = 0
 
     init(issue: QualityIssue) {
-        steps = switch issue {
+        self.issue = issue
+        self.steps = Self.calculateSteps(for: issue, existingSteps: [])
+    }
+    
+    // Merge new issues and append necessary steps without loosing active progress
+    func updateIssue(_ newIssue: QualityIssue) {
+        guard newIssue != issue else { return }
+        let combined = issue.combining(with: newIssue)
+        self.issue = combined
+        self.steps = Self.calculateSteps(for: combined, existingSteps: steps)
+    }
+    
+    private static func calculateSteps(for issue: QualityIssue, existingSteps: [PerbaikiStep]) -> [PerbaikiStep] {
+        let canonicalOrder: [PerbaikiStep] = [.air, .phAir, .kepekatan]
+        let requiredSteps: Set<PerbaikiStep> = switch issue {
         case .kepekatan: [.air, .kepekatan]
         case .phAir: [.air, .phAir]
         case .keduanya: [.air, .phAir, .kepekatan]
         }
+        
+        var updated: [PerbaikiStep] = []
+        for step in canonicalOrder {
+            if existingSteps.contains(step) || requiredSteps.contains(step) {
+                updated.append(step)
+            }
+        }
+        return updated
     }
     
     var jumlahAirFormatted: String {
@@ -42,7 +65,7 @@ final class PerbaikiLarutanViewModel {
     }
 
     func isActive(_ step: PerbaikiStep) -> Bool {
-        !isFinished && steps[activeIndex] == step
+        !isFinished && activeIndex < steps.count && steps[activeIndex] == step
     }
 
     func isDone(_ step: PerbaikiStep) -> Bool {

@@ -48,6 +48,11 @@ struct PerbaikiLarutanView: View {
             }
         }
         .presentationDetents([.large])
+        .onChange(of: viewModel.qualityAlert) { _, alert in
+            if let alert {
+                guide.updateIssue(alert.issue)
+            }
+        }
         .onChange(of: guide.isFinished) { _, isFinished in
             if isFinished {
                 viewModel.resetKeMonitoring()

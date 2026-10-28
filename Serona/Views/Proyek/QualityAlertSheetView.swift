@@ -73,11 +73,35 @@ struct QualityAlertSheetView: View {
 }
 
 /// The red bar under the readings while the solution is below a limit. Tapping it shows the alert again.
+//struct LarutanMenurunBanner: View {
+//    let onTap: () -> Void
+//
+//    var body: some View {
+//        Button(action: onTap) {
+//            HStack {
+//                Text("Kualitas Larutan Menurun")
+//                Spacer()
+//                Image(systemName: "exclamationmark.circle.fill")
+//            }
+//            .font(.headline)
+//            .foregroundStyle(.white)
+//            .padding(12)
+//            .frame(maxWidth: .infinity)
+//            .background(Color.latarPeringatan, in: RoundedRectangle(cornerRadius: 10))
+//        }
+//        .buttonStyle(.plain)
+//        .accessibilityHint("Menampilkan peringatan")
+//    }
+//}
+
+// The red banner shown under measurements while solution parameters are below threshold limits.
 struct LarutanMenurunBanner: View {
-    let onTap: () -> Void
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
-        Button(action: onTap) {
+        Button {
+            onTap?()
+        } label: {
             HStack {
                 Text("Kualitas Larutan Menurun")
                 Spacer()
@@ -90,7 +114,8 @@ struct LarutanMenurunBanner: View {
             .background(Color.latarPeringatan, in: RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
-        .accessibilityHint("Menampilkan peringatan")
+        .disabled(onTap == nil)
+        .accessibilityElement(children: .combine)
     }
 }
 

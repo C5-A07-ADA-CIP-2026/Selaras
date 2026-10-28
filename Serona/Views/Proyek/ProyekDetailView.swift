@@ -64,7 +64,7 @@ struct ProyekDetailView: View {
                 }
             }
             .onChange(of: viewModel.qualityAlert) { _, alert in
-                if alert != nil {
+                if alert != nil && perbaikiIssue == nil && !isShowingQualityAlert {
                     tampilkanQualityAlert()
                 }
             }
@@ -118,14 +118,17 @@ struct ProyekDetailView: View {
                     JudulBagian(teks: "Warna")
                     Spacer()
                     if isLarutanMenurun {
-                        Button {
-                            viewModel.tampilkanQualityAlert()
-                        } label: {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .foregroundStyle(Color.peringatan)
-                        }
-                        .accessibilityLabel("Kualitas larutan menurun")
-                        .accessibilityHint("Menampilkan peringatan")
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(Color.peringatan)
+                            .accessibilityLabel("Kualitas larutan menurun")
+//                        Button {
+//                            viewModel.tampilkanQualityAlert()
+//                        } label: {
+//                            Image(systemName: "exclamationmark.circle.fill")
+//                                .foregroundStyle(Color.peringatan)
+//                        }
+//                        .accessibilityLabel("Kualitas larutan menurun")
+//                        .accessibilityHint("Menampilkan peringatan")
                     }
                 }
                 WarnaSwatchView(namaWarna: proyek.namaWarna, warnaHex: proyek.warnaHex)
@@ -158,7 +161,21 @@ struct ProyekDetailView: View {
                 )
             }
             if isLarutanMenurun {
-                LarutanMenurunBanner { viewModel.tampilkanQualityAlert() }
+                LarutanMenurunBanner {
+                    // Tapping banner directly opens repair guide
+                    if let issue = viewModel.qualityAlert?.issue {
+                        perbaikiIssue = issue
+                    } else {
+                        let currentIssue: QualityIssue = switch (viewModel.isConcentrationLow, viewModel.isWaterPHLow) {
+                        case (true, true): .keduanya
+                        case (true, false): .kepekatan
+                        case (false, true): .phAir
+                        case (false, false): .kepekatan
+                        }
+                        perbaikiIssue = currentIssue
+                    }
+                }
+//                LarutanMenurunBanner { viewModel.tampilkanQualityAlert() }
             }
         }
     }
