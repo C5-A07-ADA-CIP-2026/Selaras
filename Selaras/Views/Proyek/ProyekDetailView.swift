@@ -14,6 +14,9 @@ struct ProyekDetailView: View {
     @StateObject private var viewModel: ProyekDetailViewModel
     @Bindable private var proyek: Proyek
     @State private var isShowingDeviceList = false
+    @State private var isShowingQualityAlert = false
+    @State private var pendingPerbaiki: QualityIssue?
+    @State private var perbaikiIssue: QualityIssue?
 
     init(proyek: Proyek, service: (any ColorMeasurementSource)? = nil) {
         self.proyek = proyek
@@ -21,6 +24,61 @@ struct ProyekDetailView: View {
     }
 
     var body: some View {
+        withSheets
+            .alert(
+                "Data warna tidak tersedia",
+                isPresented: isPresented(viewModel.colorMeasurementError, clear: viewModel.clearColorMeasurementError),
+                presenting: viewModel.colorMeasurementError
+            ) { _ in
+                Button("Sambungkan Ulang") {
+                    isShowingDeviceList = true
+                }
+                Button("Tutup", role: .cancel) {}
+            } message: { error in
+                Text(error)
+            }
+            .alert(
+                "Gagal menyimpan proyek",
+                isPresented: isPresented(viewModel.saveError, clear: viewModel.clearSaveError),
+                presenting: viewModel.saveError
+            ) { _ in
+                Button("Tutup", role: .cancel) {}
+            } message: { error in
+                Text(error)
+            }
+            .alert("Selesaikan Proyek?", isPresented: $isShowingKonfirmasiSelesai) {
+                Button("Batal", role: .cancel) {}
+                Button("Selesaikan") {
+                    viewModel.selesaikan(in: modelContext)
+                }
+            } message: {
+                Text("Setelah selesai, proyek tidak bisa dipindai atau diubah lagi.")
+            }
+    }
+
+    private var withSheets: some View {
+        screen
+            .sheet(isPresented: $isShowingDeviceList) {
+                DeviceListSheetView { device in
+                    Task { await viewModel.pindahPerangkat(device, in: modelContext) }
+                }
+            }
+            .onChange(of: viewModel.qualityAlert) { _, alert in
+                if alert != nil {
+                    tampilkanQualityAlert()
+                }
+            }
+            .sheet(isPresented: $isShowingQualityAlert, onDismiss: perbaikiSetelahAlert) {
+                if let alert = viewModel.qualityAlert {
+                    QualityAlertSheetView(alert: alert) { pendingPerbaiki = alert.issue }
+                }
+            }
+            .sheet(item: $perbaikiIssue) { issue in
+                PerbaikiLarutanView(issue: issue, viewModel: viewModel)
+            }
+    }
+
+    private var screen: some View {
         VStack(spacing: 16) {
             ScrollView {
                 details
@@ -38,7 +96,7 @@ struct ProyekDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay {
             if isMemulai {
-                loadingOverlay
+                MemulaiPemindaianOverlay()
                     .transition(.opacity)
             }
         }
@@ -49,59 +107,6 @@ struct ProyekDetailView: View {
         .onDisappear {
             viewModel.berhenti()
         }
-        .sheet(isPresented: $isShowingDeviceList) {
-            DeviceListSheetView { device in
-                Task { await viewModel.pindahPerangkat(device, in: modelContext) }
-            }
-        }
-        .alert(
-            "Data warna tidak tersedia",
-            isPresented: isPresented(viewModel.colorMeasurementError, clear: viewModel.clearColorMeasurementError),
-            presenting: viewModel.colorMeasurementError
-        ) { _ in
-            Button("Sambungkan Ulang") {
-                isShowingDeviceList = true
-            }
-            Button("Tutup", role: .cancel) {}
-        } message: { error in
-            Text(error)
-        }
-        .alert(
-            "Kepekatan Warna Kurang",
-            isPresented: isPresented(
-                viewModel.colorConcentrationWarning,
-                clear: viewModel.clearColorConcentrationWarning
-            )
-        ) {
-            Button("Mengerti", role: .cancel) {}
-        } message: {
-            Text(viewModel.colorConcentrationWarning ?? "")
-        }
-        .alert(
-            "pH Air Kurang",
-            isPresented: isPresented(viewModel.waterPHWarning, clear: viewModel.clearWaterPHWarning)
-        ) {
-            Button("Mengerti", role: .cancel) {}
-        } message: {
-            Text(viewModel.waterPHWarning ?? "")
-        }
-        .alert(
-            "Gagal menyimpan proyek",
-            isPresented: isPresented(viewModel.saveError, clear: viewModel.clearSaveError),
-            presenting: viewModel.saveError
-        ) { _ in
-            Button("Tutup", role: .cancel) {}
-        } message: { error in
-            Text(error)
-        }
-        .alert("Selesaikan Proyek?", isPresented: $isShowingKonfirmasiSelesai) {
-            Button("Batal", role: .cancel) {}
-            Button("Selesaikan") {
-                viewModel.selesaikan(in: modelContext)
-            }
-        } message: {
-            Text("Setelah selesai, proyek tidak bisa dipindai atau diubah lagi.")
-        }
     }
 
     private var details: some View {
@@ -109,7 +114,15 @@ struct ProyekDetailView: View {
             PerangkatBaris(nama: proyek.perangkatNama)
 
             VStack(alignment: .leading, spacing: 24) {
-                JudulBagian(teks: "Warna")
+                HStack {
+                    JudulBagian(teks: "Warna")
+                    Spacer()
+                    if isLarutanMenurun {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(Color.peringatan)
+                            .accessibilityLabel("Kualitas larutan menurun")
+                    }
+                }
                 WarnaSwatchView(namaWarna: proyek.namaWarna, warnaHex: proyek.warnaHex)
                 ResepWarnaView(
                     pewarna: proyek.pewarna,
@@ -122,7 +135,7 @@ struct ProyekDetailView: View {
 
             if proyek.status == .nonaktif {
                 hasilAkhir
-            } else if viewModel.isDataScanned {
+            } else if viewModel.isDataScanned, !isMemulai {
                 pengukuran
             }
         }
@@ -132,9 +145,21 @@ struct ProyekDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             JudulBagian(teks: "Pengukuran")
             ForEach(viewModel.measurements.displayedMeasurements) { measurement in
-                BarisInfo(judul: measurement.title, nilai: measurement.value, tebal: measurement.isCurrent)
+                BarisInfo(
+                    judul: measurement.title,
+                    nilai: measurement.value,
+                    tebal: measurement.isCurrent,
+                    peringatan: viewModel.isBelowLimit(measurement)
+                )
+            }
+            if isLarutanMenurun {
+                LarutanMenurunBanner()
             }
         }
+    }
+
+    private var isLarutanMenurun: Bool {
+        !isMemulai && (viewModel.isConcentrationLow || viewModel.isWaterPHLow)
     }
 
     private var hasilAkhir: some View {
@@ -155,6 +180,25 @@ struct ProyekDetailView: View {
                 tebal: true
             )
             BarisInfo(judul: "Batas pH", nilai: ProyekColorMeasurements.format(proyek.batasPH))
+        }
+    }
+
+    /// Clears the alert; when the user chose "Perbaiki Larutan", opens the guide now that the sheet is gone.
+    private func perbaikiSetelahAlert() {
+        viewModel.clearQualityAlert()
+        perbaikiIssue = pendingPerbaiki
+        pendingPerbaiki = nil
+    }
+
+    /// Shows the sheet as soon as the loading is gone and the readings are on screen.
+    private func tampilkanQualityAlert() {
+        Task {
+            while isMemulai {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            if viewModel.qualityAlert != nil {
+                isShowingQualityAlert = true
+            }
         }
     }
 
@@ -207,9 +251,9 @@ struct ProyekDetailView: View {
         viewModel.isDataScanned ? "Selesaikan Proyek" : "Mulai Pindai"
     }
 
-    private func isPresented(_ message: String?, clear: @escaping () -> Void) -> Binding<Bool> {
+    private func isPresented(_ value: (some Any)?, clear: @escaping () -> Void) -> Binding<Bool> {
         Binding(
-            get: { message != nil },
+            get: { value != nil },
             set: { isPresented in
                 if !isPresented {
                     DispatchQueue.main.async { clear() }
@@ -217,8 +261,11 @@ struct ProyekDetailView: View {
             }
         )
     }
+}
 
-    private var loadingOverlay: some View {
+/// Shown over the project while the first scan reads the device.
+private struct MemulaiPemindaianOverlay: View {
+    var body: some View {
         ZStack {
             Color.black.opacity(0.25)
                 .ignoresSafeArea()
@@ -261,5 +308,53 @@ struct ProyekDetailView: View {
     proyek.selesaikan(kepekatanAkhir: 94.04, phAkhir: 9)
     return NavigationStack {
         ProyekDetailView(proyek: proyek, service: SimulatedDeviceConnectionService())
+    }
+}
+
+/// Reads full color and pH 12 at first, then `reading`, to try the quality alert.
+private struct LowReadingPreviewSource: ColorMeasurementSource {
+    let reading: ColorMeasurement
+
+    func readInitialColorMeasurement() async throws -> ColorMeasurement {
+        ColorMeasurement(visibleAverage: 1000, clear: 1000, nir: 100, waterPH: 12)
+    }
+
+    func measurementUpdates() -> AsyncStream<ColorMeasurement> {
+        AsyncStream { continuation in
+            continuation.yield(reading)
+        }
+    }
+}
+
+#Preview("Kepekatan saja di bawah batas") {
+    NavigationStack {
+        ProyekDetailView(
+            proyek: .previewSample,
+            service: LowReadingPreviewSource(
+                reading: ColorMeasurement(visibleAverage: 500, clear: 1000, nir: 100, waterPH: 12)
+            )
+        )
+    }
+}
+
+#Preview("pH saja di bawah batas") {
+    NavigationStack {
+        ProyekDetailView(
+            proyek: .previewSample,
+            service: LowReadingPreviewSource(
+                reading: ColorMeasurement(visibleAverage: 1000, clear: 1000, nir: 100, waterPH: 1)
+            )
+        )
+    }
+}
+
+#Preview("Kepekatan dan pH di bawah batas") {
+    NavigationStack {
+        ProyekDetailView(
+            proyek: .previewSample,
+            service: LowReadingPreviewSource(
+                reading: ColorMeasurement(visibleAverage: 500, clear: 1000, nir: 100, waterPH: 1)
+            )
+        )
     }
 }

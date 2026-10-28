@@ -112,6 +112,30 @@ struct DeviceListViewModelTests {
         #expect(viewModel.errorMessage == nil)
     }
 
+    @Test("Disconnecting drops the connection and keeps the device in the list")
+    func disconnectDropsConnection() async {
+        let service = StubDeviceConnectionService(devices: [esp, espB])
+        let viewModel = DeviceListViewModel(service: service)
+        await viewModel.scan()
+        await viewModel.connect(esp)
+
+        await viewModel.disconnect()
+
+        #expect(viewModel.connectedDevice == nil)
+        #expect(viewModel.devices == [esp, espB])
+        #expect(service.disconnectCounter.value == 1)
+    }
+
+    @Test("Disconnecting with nothing connected does nothing")
+    func disconnectWithoutConnection() async {
+        let service = StubDeviceConnectionService()
+        let viewModel = DeviceListViewModel(service: service)
+
+        await viewModel.disconnect()
+
+        #expect(service.disconnectCounter.value == 0)
+    }
+
     @Test("A failed connection reports the error and connects nothing")
     func connectFailureReportsError() async {
         let viewModel = DeviceListViewModel(service: StubDeviceConnectionService(connectError: StubSaveError()))
