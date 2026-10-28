@@ -129,7 +129,11 @@ struct TambahProyekView: View {
                 WarnaSwatchView(namaWarna: resep.namaWarna, warnaHex: resep.warnaHex) {
                     viewModel.hapusResep()
                 }
-                ResepWarnaView(pewarna: resep.pewarna, zatPembantu: resep.zatPembantu)
+                ResepWarnaView(
+                    pewarna: resep.pewarna,
+                    zatPembantu: resep.zatPembantu,
+                    air: resep.air > 0 ? resep.air : nil
+                )
             } else {
                 Button {
                     isShowingPilihResep = true
