@@ -132,6 +132,16 @@ final class BLEDeviceConnectionService: NSObject, DeviceConnectionService, @unch
         select(peripheral)
     }
 
+    func disconnect(from device: DiscoveredDevice) async {
+        guard let peripheral = scannedPeripherals[device.id] else { return }
+        print("[BLE] 🔌 Memutus koneksi dari '\(device.nama)'...")
+        centralManager?.cancelPeripheralConnection(peripheral)
+        if peripheral === discoveredPeripheral {
+            discoveredPeripheral = nil
+            measurementCharacteristic = nil
+        }
+    }
+
     /// Connects to `pendingPeripheral` and resumes when CoreBluetooth reports the result, or after the timeout.
     private func performConnection(attempt: UUID) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in

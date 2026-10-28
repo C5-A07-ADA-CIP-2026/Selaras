@@ -10,13 +10,16 @@ struct DeviceListSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: DeviceListViewModel
     private let onConnected: (DiscoveredDevice) -> Void
+    private let onDisconnected: (DiscoveredDevice) -> Void
 
     init(
         service: (any DeviceConnecting)? = nil,
-        onConnected: @escaping (DiscoveredDevice) -> Void = { _ in }
+        onConnected: @escaping (DiscoveredDevice) -> Void = { _ in },
+        onDisconnected: @escaping (DiscoveredDevice) -> Void = { _ in }
     ) {
         _viewModel = State(wrappedValue: DeviceListViewModel(service: service))
         self.onConnected = onConnected
+        self.onDisconnected = onDisconnected
     }
 
     var body: some View {
@@ -34,8 +37,11 @@ struct DeviceListSheetView: View {
                         Button {
                             Task { await viewModel.scan() }
                         } label: {
-                            Label("Cari Ulang", systemImage: "arrow.clockwise")
+                            Label("Cari Ulang", systemImage: "arrow.triangle.2.circlepath")
+                                .labelStyle(.iconOnly)
                         }
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.circle)
                         .disabled(viewModel.isScanning || viewModel.connectingDevice != nil)
                     }
                 }
@@ -46,7 +52,6 @@ struct DeviceListSheetView: View {
         .onChange(of: viewModel.connectedDevice) { _, device in
             guard let device else { return }
             onConnected(device)
-            dismiss()
         }
         .alert(
             viewModel.connectingDevice?.nama ?? "Perangkat",
@@ -63,8 +68,7 @@ struct DeviceListSheetView: View {
             isPresented: errorIsPresented,
             presenting: viewModel.errorMessage
         ) { _ in
-            Button("Tutup", role: .cancel) {
-            }
+            Button("Tutup", role: .cancel) {}
         } message: { message in
             Text(message)
         }
@@ -72,7 +76,7 @@ struct DeviceListSheetView: View {
 
     @ViewBuilder
     private var content: some View {
-        if viewModel.devices.isEmpty {
+        if viewModel.devices.isEmpty, viewModel.connectedDevice == nil {
             if viewModel.isScanning {
                 ProgressView("Mencari perangkat…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -90,7 +94,15 @@ struct DeviceListSheetView: View {
         } else {
             List {
                 Section {
-                    ForEach(viewModel.devices) { device in
+                    if let connected = viewModel.connectedDevice {
+                        ConnectedDeviceRow(device: connected) {
+                            Task {
+                                await viewModel.disconnect()
+                                onDisconnected(connected)
+                            }
+                        }
+                    }
+                    ForEach(viewModel.devices.filter { $0.id != viewModel.connectedDevice?.id }) { device in
                         DeviceRow(device: device) {
                             Task { await viewModel.connect(device) }
                         }
@@ -101,6 +113,7 @@ struct DeviceListSheetView: View {
                     }
                 }
             }
+            .listStyle(.plain)
         }
     }
 
@@ -127,6 +140,28 @@ struct DeviceListSheetView: View {
     }
 }
 
+private struct ConnectedDeviceRow: View {
+    let device: DiscoveredDevice
+    let onDisconnect: () -> Void
+
+    var body: some View {
+        HStack {
+            Label(device.nama, systemImage: "wifi")
+                .foregroundStyle(.tint)
+
+            Spacer()
+
+            Button(action: onDisconnect) {
+                Image(systemName: "minus.circle.fill")
+                    .foregroundStyle(.red)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Putuskan \(device.nama)")
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 private struct DeviceRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -138,30 +173,33 @@ private struct DeviceRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout())
         layout {
-            Text(device.nama)
+            Label(device.nama, systemImage: "wifi")
+                .foregroundStyle(.primary)
 
             if !dynamicTypeSize.isAccessibilitySize {
                 Spacer()
             }
 
-            Button("Hubungkan", action: onConnect)
-                .buttonStyle(.borderless)
-                .accessibilityLabel("Hubungkan \(device.nama)")
+            Button(action: onConnect) {
+                HStack(spacing: 4) {
+                    Image(systemName: "plus")
+                    Text("Hubungkan")
+                }
+                .font(.footnote)
+                .fixedSize()
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .controlSize(.small)
+            .accessibilityLabel("Hubungkan \(device.nama)")
         }
+        .padding(.vertical, 4)
     }
 }
 
-#Preview("Mencari") {
+#Preview {
     Color.clear
         .sheet(isPresented: .constant(true)) {
-            DeviceListSheetView(service: SimulatedDeviceConnectionService())
+            DeviceListSheetView(service: SimulatedDeviceConnectionService(discoveryDelay: .milliseconds(200)))
         }
-}
-
-#Preview("Accessibility 5") {
-    Color.clear
-        .sheet(isPresented: .constant(true)) {
-            DeviceListSheetView(service: SimulatedDeviceConnectionService(discoveryDelay: .milliseconds(100)))
-        }
-        .dynamicTypeSize(.accessibility5)
 }

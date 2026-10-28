@@ -17,6 +17,7 @@ final class ProyekDetailViewModel: ObservableObject {
     @Published private(set) var colorMeasurementError: String?
     @Published private(set) var colorConcentrationWarning: String?
     @Published private(set) var waterPHWarning: String?
+    @Published private(set) var qualityAlert: QualityAlert?
     @Published private(set) var saveError: String?
 
     /// Latest streamed readings (concentration in percent of the baseline), kept for finishing the project.
@@ -65,6 +66,25 @@ final class ProyekDetailViewModel: ObservableObject {
             let message = "Gagal membaca data warna dari AS7341: \(error.localizedDescription)"
             colorMeasurementError = message
             print("[Proyek] ❌ \(message)")
+        }
+    }
+
+    /// True while the latest concentration is below the project limit.
+    var isConcentrationLow: Bool {
+        latestConcentration.map { $0 < measurements.colorConcentrationLimit } ?? false
+    }
+
+    /// True while the latest water pH is below the project limit.
+    var isWaterPHLow: Bool {
+        latestWaterPH.map { $0 < measurements.waterPHLimit } ?? false
+    }
+
+    /// True for the "current" row whose reading is below its limit.
+    func isBelowLimit(_ measurement: ProyekMeasurement) -> Bool {
+        switch measurement.id {
+        case "current-color-concentration": isConcentrationLow
+        case "current-water-ph": isWaterPHLow
+        default: false
         }
     }
 
@@ -132,15 +152,43 @@ final class ProyekDetailViewModel: ObservableObject {
         guard let concentration = measurement.concentration(relativeTo: initialVisibleAverage) else { return }
         latestConcentration = concentration
 
+        var startsNewDip = false
         if let warning = warningTracker.concentrationWarning(
             for: concentration,
             limit: updated.colorConcentrationLimit
         ) {
             colorConcentrationWarning = warning
+            startsNewDip = true
         }
 
         if let waterPH = measurement.waterPH {
-            waterPHWarning = MeasurementWarningTracker.waterPHWarning(for: waterPH, limit: updated.waterPHLimit)
+            let warning = MeasurementWarningTracker.waterPHWarning(for: waterPH, limit: updated.waterPHLimit)
+            startsNewDip = startsNewDip || (warning != nil && waterPHWarning == nil)
+            waterPHWarning = warning
+        }
+
+        // The sheet shows once per dip; the red rows and banner follow the readings.
+        if startsNewDip {
+            qualityAlert = makeQualityAlert()
+        }
+    }
+
+    private func makeQualityAlert() -> QualityAlert? {
+        switch (isConcentrationLow, isWaterPHLow) {
+        case (true, true):
+            QualityAlert(issue: .keduanya, message: MeasurementWarningTracker.bothMessage)
+        case (true, false):
+            QualityAlert(
+                issue: .kepekatan,
+                message: MeasurementWarningTracker.concentrationMessage(limit: measurements.colorConcentrationLimit)
+            )
+        case (false, true):
+            QualityAlert(
+                issue: .phAir,
+                message: MeasurementWarningTracker.waterPHMessage(limit: measurements.waterPHLimit)
+            )
+        case (false, false):
+            nil
         }
     }
 
@@ -203,6 +251,11 @@ final class ProyekDetailViewModel: ObservableObject {
     func clearColorConcentrationWarning() {
         guard colorConcentrationWarning != nil else { return }
         colorConcentrationWarning = nil
+    }
+
+    func clearQualityAlert() {
+        guard qualityAlert != nil else { return }
+        qualityAlert = nil
     }
 
     func clearWaterPHWarning() {

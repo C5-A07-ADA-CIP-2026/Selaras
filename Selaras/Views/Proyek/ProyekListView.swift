@@ -9,6 +9,8 @@ import SwiftUI
 /// The Proyek tab: active projects first, then inactive (finished) ones.
 struct ProyekListView: View {
     @Query(sort: \Proyek.tanggal, order: .reverse) private var semuaProyek: [Proyek]
+    @Environment(\.modelContext) private var modelContext
+    @State private var viewModel = ProyekListViewModel()
     @State private var isShowingTambah = false
 
     private var daftar: ProyekDaftar {
@@ -32,6 +34,38 @@ struct ProyekListView: View {
             .sheet(isPresented: $isShowingTambah) {
                 TambahProyekView()
             }
+            .alert(
+                "Hapus Proyek?",
+                isPresented: isPresented(viewModel.proyekAkanDihapus, clear: viewModel.batalHapus),
+                presenting: viewModel.proyekAkanDihapus
+            ) { proyek in
+                Button("Batal", role: .cancel) {}
+                Button("Hapus", role: .destructive) {
+                    viewModel.hapus(proyek, in: modelContext)
+                }
+            } message: { proyek in
+                Text("\(proyek.nama) akan dihapus dan tidak bisa dikembalikan.")
+            }
+            .alert(
+                "Gagal menghapus proyek",
+                isPresented: isPresented(viewModel.deleteError, clear: viewModel.clearDeleteError),
+                presenting: viewModel.deleteError
+            ) { _ in
+                Button("Tutup", role: .cancel) {}
+            } message: { error in
+                Text(error)
+            }
+    }
+
+    private func isPresented(_ value: (some Any)?, clear: @escaping () -> Void) -> Binding<Bool> {
+        Binding(
+            get: { value != nil },
+            set: { isPresented in
+                if !isPresented {
+                    DispatchQueue.main.async { clear() }
+                }
+            }
+        )
     }
 
     @ViewBuilder
@@ -46,13 +80,13 @@ struct ProyekListView: View {
         } else {
             List {
                 bagian("Aktif", proyek: daftar.aktif)
-                bagian("Nonaktif", proyek: daftar.nonaktif)
+                bagian("Nonaktif", proyek: daftar.nonaktif, bisaDihapus: true)
             }
         }
     }
 
     @ViewBuilder
-    private func bagian(_ judul: String, proyek: [Proyek]) -> some View {
+    private func bagian(_ judul: String, proyek: [Proyek], bisaDihapus: Bool = false) -> some View {
         if !proyek.isEmpty {
             Section(judul) {
                 ForEach(proyek) { item in
@@ -60,6 +94,17 @@ struct ProyekListView: View {
                         ProyekDetailView(proyek: item)
                     } label: {
                         ProyekRowView(proyek: item)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if bisaDihapus {
+                            Button(role: .destructive) {
+                                viewModel.mintaHapus(item)
+                            } label: {
+                                Label("Hapus", systemImage: "trash")
+                                    .labelStyle(.iconOnly)
+                            }
+                            .tint(Color.latarPeringatan)
+                        }
                     }
                 }
             }

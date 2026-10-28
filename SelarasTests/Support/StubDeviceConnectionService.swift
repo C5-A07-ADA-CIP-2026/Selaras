@@ -48,6 +48,8 @@ struct StubDeviceConnectionService: DeviceConnectionService {
     var connectSuspends = false
     /// Counts every `connect(to:)` call.
     let connectCounter = ReadCounter()
+    /// Counts every `disconnect(from:)` call.
+    let disconnectCounter = ReadCounter()
 
     func scanDevices() -> AsyncThrowingStream<DiscoveredDevice, any Error> {
         if let liveDevices {
@@ -71,6 +73,10 @@ struct StubDeviceConnectionService: DeviceConnectionService {
         if let connectError {
             throw connectError
         }
+    }
+
+    func disconnect(from _: DiscoveredDevice) async {
+        _ = disconnectCounter.increment()
     }
 
     func readInitialColorMeasurement() async throws -> ColorMeasurement {

@@ -10,10 +10,14 @@ import SwiftUI
 struct TambahProyekView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @State private var viewModel = TambahProyekViewModel()
+    @State private var viewModel: TambahProyekViewModel
     @State private var isShowingDeviceList = false
     @State private var isShowingPilihResep = false
     @FocusState private var isNamaFocused: Bool
+
+    init(viewModel: TambahProyekViewModel = TambahProyekViewModel()) {
+        _viewModel = State(wrappedValue: viewModel)
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,8 +25,8 @@ struct TambahProyekView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     namaField
                     perangkatSection
-                    warnaSection
                     JumlahKainBaris(jumlahKain: $viewModel.jumlahKain)
+                    warnaSection
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 8)
@@ -51,7 +55,10 @@ struct TambahProyekView: View {
             }
         }
         .sheet(isPresented: $isShowingDeviceList) {
-            DeviceListSheetView { viewModel.pilihPerangkat($0) }
+            DeviceListSheetView(
+                onConnected: { viewModel.pilihPerangkat($0) },
+                onDisconnected: { _ in Task { await viewModel.hapusPerangkat() } }
+            )
         }
         .sheet(isPresented: $isShowingPilihResep) {
             PilihResepSheetView { viewModel.pilihResep($0) }
@@ -81,20 +88,33 @@ struct TambahProyekView: View {
 
     private var perangkatSection: some View {
         VStack(alignment: .leading, spacing: 16) {
+            JudulBagian(teks: "Perangkat")
+
             if let perangkat = viewModel.perangkat {
-                PerangkatBaris(nama: perangkat.nama)
-            } else {
-                JudulBagian(teks: "Perangkat")
+                HStack {
+                    Label(perangkat.nama, systemImage: "wifi")
+                        .font(.headline)
+                        .foregroundStyle(.blue)
+
+                    Spacer()
+
+                    Button {
+                        Task { await viewModel.hapusPerangkat() }
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Putuskan \(perangkat.nama)")
+                }
             }
 
             Button {
                 isShowingDeviceList = true
             } label: {
-                Label(
-                    viewModel.perangkat == nil ? "Tambah Perangkat" : "Ganti Perangkat",
-                    systemImage: viewModel.perangkat == nil ? "plus" : "arrow.triangle.2.circlepath"
-                )
-                .frame(maxWidth: .infinity)
+                Text(viewModel.perangkat == nil ? "Pilih Perangkat" : "Ganti Perangkat")
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -109,12 +129,16 @@ struct TambahProyekView: View {
                 WarnaSwatchView(namaWarna: resep.namaWarna, warnaHex: resep.warnaHex) {
                     viewModel.hapusResep()
                 }
-                ResepWarnaView(pewarna: resep.pewarna, zatPembantu: resep.zatPembantu)
+                ResepWarnaView(
+                    pewarna: resep.pewarna,
+                    zatPembantu: resep.zatPembantu,
+                    air: resep.air > 0 ? resep.air : nil
+                )
             } else {
                 Button {
                     isShowingPilihResep = true
                 } label: {
-                    Label("Tambah Warna", systemImage: "plus")
+                    Text("Pilih Warna")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -136,18 +160,11 @@ struct TambahProyekView: View {
 }
 
 #Preview {
-    Color.clear
+    let viewModel = TambahProyekViewModel(service: SimulatedDeviceConnectionService())
+    viewModel.pilihPerangkat(SimulatedDeviceConnectionService.devices[0])
+    return Color.clear
         .sheet(isPresented: .constant(true)) {
-            TambahProyekView()
+            TambahProyekView(viewModel: viewModel)
         }
         .modelContainer(for: SelarasSchema.models, inMemory: true)
-}
-
-#Preview("Accessibility 5") {
-    Color.clear
-        .sheet(isPresented: .constant(true)) {
-            TambahProyekView()
-        }
-        .modelContainer(for: SelarasSchema.models, inMemory: true)
-        .dynamicTypeSize(.accessibility5)
 }

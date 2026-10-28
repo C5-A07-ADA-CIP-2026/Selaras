@@ -17,15 +17,26 @@ nonisolated struct MeasurementWarningTracker {
         }
         guard !hasWarnedAboutLowConcentration else { return nil }
         hasWarnedAboutLowConcentration = true
-        return "Kepekatan warna saat ini di bawah \(Self.format(limit))%. "
+        return Self.concentrationMessage(limit: limit)
+    }
+
+    static func concentrationMessage(limit: Double) -> String {
+        "Kepekatan warna saat ini di bawah \(format(limit))%. "
             + "Tambahkan 10 gram pewarna untuk menjaga kualitas dan ketajaman warna batik."
     }
+
+    static func waterPHMessage(limit: Double) -> String {
+        "pH air saat ini di bawah \(format(limit)). "
+            + "Tambahkan 10 gram soda abu untuk menjaga kualitas dan ketajaman warna batik."
+    }
+
+    static let bothMessage = "pH air dan kepekatan warna saat ini berada di bawah batas aman yang ditentukan. "
+        + "Tindakan perbaikan disarankan agar hasil optimal."
 
     /// The pH warning is repeated for every reading below the limit.
     static func waterPHWarning(for waterPH: Double, limit: Double) -> String? {
         guard waterPH < limit else { return nil }
-        return "pH air saat ini di bawah \(format(limit)). "
-            + "Tambahkan 10 gram soda abu untuk menjaga kualitas dan ketajaman warna batik."
+        return waterPHMessage(limit: limit)
     }
 
     /// Locale-independent, drops trailing zeros: 80 -> "80", 87.5 -> "87.5".
