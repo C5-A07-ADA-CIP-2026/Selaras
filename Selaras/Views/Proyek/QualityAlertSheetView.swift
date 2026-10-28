@@ -15,6 +15,7 @@ struct QualityAlertSheetView: View {
     @State private var contentHeight: CGFloat = 480
 
     let alert: QualityAlert
+    let onPerbaiki: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,7 @@ struct QualityAlertSheetView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Button {
+                        onPerbaiki()
                         dismiss()
                     } label: {
                         Text("Perbaiki Larutan")
@@ -70,11 +72,29 @@ struct QualityAlertSheetView: View {
     }
 }
 
+/// The red bar under the readings while the solution is below a limit.
+struct LarutanMenurunBanner: View {
+    var body: some View {
+        HStack {
+            Text("Kualitas Larutan Menurun")
+            Spacer()
+            Image(systemName: "exclamationmark.circle.fill")
+        }
+        .font(.headline)
+        .foregroundStyle(.white)
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(Color.latarPeringatan, in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityElement(children: .combine)
+    }
+}
+
 #Preview {
     Color.clear
         .sheet(isPresented: .constant(true)) {
             QualityAlertSheetView(
-                alert: QualityAlert(issue: .keduanya, message: MeasurementWarningTracker.bothMessage)
+                alert: QualityAlert(issue: .keduanya, message: MeasurementWarningTracker.bothMessage),
+                onPerbaiki: {}
             )
         }
 }
