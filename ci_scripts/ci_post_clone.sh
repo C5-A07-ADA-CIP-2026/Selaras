@@ -1,18 +1,19 @@
 #!/bin/sh
 # Xcode Cloud: runs after repo clone, before any build.
 #
-# Quality gates (SwiftLint, SwiftFormat) run on PULL REQUEST workflows only:
-# they gate the merge, not the ship. The TestFlight workflow builds
-# already-reviewed code from its target branch, so it skips these and never
-# blocks a release on a style finding. Gate key: CI_PULL_REQUEST_NUMBER is set
-# only for PR-triggered builds.
+# Quality gates (SwiftLint, SwiftFormat) run on PULL REQUEST workflows and on
+# builds of the `staging` branch: they gate the merge and the pre-release
+# branch, not the ship. The TestFlight workflow builds already-reviewed code
+# from its target branch, so it skips these and never blocks a release on a
+# style finding. Gate keys: CI_PULL_REQUEST_NUMBER is set only for PR-triggered
+# builds; CI_BRANCH is the branch of a branch-triggered build.
 set -e
 
 REPOSITORY_DIR="${CI_PRIMARY_REPOSITORY_PATH:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}"
 cd "$REPOSITORY_DIR"
 
-if [ -z "$CI_PULL_REQUEST_NUMBER" ]; then
-    echo "Not a pull request build; skipping quality gates."
+if [ -z "$CI_PULL_REQUEST_NUMBER" ] && [ "$CI_BRANCH" != "staging" ]; then
+    echo "Not a pull request or staging build; skipping quality gates."
     exit 0
 fi
 
