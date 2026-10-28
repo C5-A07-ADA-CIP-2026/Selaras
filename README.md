@@ -68,7 +68,7 @@ swiftformat --lint --swift-version 6.0 --language-mode 6 .
 swiftlint lint --strict
 ```
 
-Lint dan format juga dijalankan Xcode Cloud pada setiap PR lewat `ci_scripts/ci_post_clone.sh`. Build dan test dijalankan oleh action Test di workflow PR checks.
+Lint dan format juga dijalankan Xcode Cloud pada setiap PR dan setiap build branch `staging` lewat `ci_scripts/ci_post_clone.sh`. Build dan test dijalankan oleh action Test di workflow PR checks.
 
 Aturan UI (lengkap di `.agents/skills/hig-compliance/SKILL.md`):
 
@@ -111,4 +111,5 @@ Batas kepekatan warna adalah **80%**. Jika nilai turun di bawah 80%, aplikasi me
 Script dan shared scheme sudah ada di repo. Workflow dibuat manual di Xcode (Product → Xcode Cloud):
 
 1. **PR checks**: start condition pull request ke `dev`, `staging`, dan `main`. Action: Test scheme `Serona`.
-2. **TestFlight**: start condition perubahan pada branch rilis. Action: Archive, lalu post-action TestFlight (Internal Testing).
+2. **Staging**: start condition perubahan pada branch `staging`. Action: Test scheme `Serona`. `ci_post_clone.sh` menjalankan SwiftLint dan SwiftFormat juga untuk build branch `staging`, bukan hanya PR.
+3. **TestFlight**: start condition perubahan pada branch `main`. Action: Archive, lalu post-action TestFlight (Internal Testing). Lint dan format dilewati di workflow ini.
