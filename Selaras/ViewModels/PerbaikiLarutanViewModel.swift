@@ -21,7 +21,7 @@ final class PerbaikiLarutanViewModel {
     static let gramPewarna = 10
 
     let steps: [PerbaikiStep]
-    var jumlahAir = 7
+    var jumlahAir: Double = 1.0
     private(set) var isFinished = false
     private var activeIndex = 0
 
@@ -31,6 +31,14 @@ final class PerbaikiLarutanViewModel {
         case .phAir: [.air, .phAir]
         case .keduanya: [.air, .phAir, .kepekatan]
         }
+    }
+    
+    var jumlahAirFormatted: String {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "id_ID")
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 1
+        return formatter.string(from: NSNumber(value: jumlahAir)) ?? "\(jumlahAir)"
     }
 
     func isActive(_ step: PerbaikiStep) -> Bool {

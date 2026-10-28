@@ -20,6 +20,14 @@ final class ProyekDetailViewModel: ObservableObject {
     @Published private(set) var qualityAlert: QualityAlert?
     @Published private(set) var saveError: String?
 
+    // Integration Status Proses & Formula
+    @Published private(set) var statusProses: StatusProses = .initialSetup
+    @Published private(set) var kalibrasi = DataKalibrasi(slopeA: 0.0)
+    
+    private var checkpoint1Ph: Double?
+    private var checkpoint1Absorbansi: Double?
+    private var airDitambahkanMl: Int = 1000
+    
     /// Latest streamed readings (concentration in percent of the baseline), kept for finishing the project.
     private(set) var latestConcentration: Double?
     private(set) var latestWaterPH: Double?
@@ -45,6 +53,7 @@ final class ProyekDetailViewModel: ObservableObject {
                 initialWaterPH: proyek.phAwal
             )
             isDataScanned = true
+            statusProses = .monitoring
         }
     }
 
@@ -109,7 +118,16 @@ final class ProyekDetailViewModel: ObservableObject {
             waterPHLimit: proyek.batasPH,
             initialWaterPH: initial.waterPH
         )
+        
+        // Hitung slopeA kalibrasi awal (A0 / Target Concentration)
+        let resepKalkulasi = ResepKalkulasi(proyek: proyek)
+        let targetConc = resepKalkulasi.targetKonsentrasiPewarna
+        if targetConc > 0 {
+            self.kalibrasi.slopeA = initial.visibleAverage / targetConc
+        }
+        
         isDataScanned = true
+        statusProses = .monitoring
         startStreaming()
     }
 
@@ -151,7 +169,7 @@ final class ProyekDetailViewModel: ObservableObject {
 
         guard let concentration = measurement.concentration(relativeTo: initialVisibleAverage) else { return }
         latestConcentration = concentration
-
+        
         var startsNewDip = false
         if let warning = warningTracker.concentrationWarning(
             for: concentration,
@@ -171,6 +189,60 @@ final class ProyekDetailViewModel: ObservableObject {
         if startsNewDip {
             qualityAlert = makeQualityAlert()
         }
+        
+        let currentPH = measurement.waterPH ?? 12.0
+        let currentAbs = measurement.visibleAverage
+        
+        switch statusProses {
+        case .monitoring:
+            if currentPH < proyek.batasPH || concentration < proyek.batasKepekatan {
+                checkpoint1Ph = currentPH
+                checkpoint1Absorbansi = currentAbs
+                statusProses = .thresholdTerlewati(pH1: currentPH, absorbansi1: currentAbs)
+            }
+            
+        case .airDitambahkan:
+            if let ph1 = checkpoint1Ph,
+               let hasilSoda = Rumus.hitungPenambahanSoda(
+                pH1: ph1,
+                pH2: currentPH,
+                airDitambahkan: airDitambahkanMl,
+                resep: ResepKalkulasi(proyek: proyek)
+               ) {
+                statusProses = .sodaDihitung(hasilSoda)
+            }
+            
+        case .sodaDitambahkan(let hasilSoda):
+            let hasilPewarna = Rumus.hitungPenambahanPewarna(
+                absorbansi3: currentAbs,
+                totalVolumeLiter: hasilSoda.volumeAirSaatIni,
+                resep: ResepKalkulasi(proyek: proyek),
+                kalibrasi: kalibrasi
+            )
+            statusProses = .pewarnaDihitung(hasilSoda, hasilPewarna)
+            
+        default:
+            break
+        }
+    }
+    
+    // MARK: - User Action Handlers
+    
+    func userKonfirmasiMenambahAir(jumlahML: Int = 1000) {
+        self.airDitambahkanMl = jumlahML
+        self.statusProses = .airDitambahkan
+    }
+    
+    func userKonfirmasiTambahSoda() {
+        if case .sodaDihitung(let hasilSoda) = statusProses {
+            self.statusProses = .sodaDitambahkan(hasilSoda)
+        }
+    }
+    
+    func resetKeMonitoring() {
+        self.checkpoint1Ph = nil
+        self.checkpoint1Absorbansi = nil
+        self.statusProses = .monitoring
     }
 
     private func makeQualityAlert() -> QualityAlert? {

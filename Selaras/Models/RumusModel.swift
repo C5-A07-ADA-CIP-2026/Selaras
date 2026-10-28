@@ -23,13 +23,55 @@ struct ZatPembantu: Identifiable, Equatable {
 
 // MARK: - Initial Value yang Diketahui
 
-struct Resep {
+struct ResepKalkulasi {
     var pewarna: [BahanPewarna]
     var zatPembantu: [ZatPembantu]
     var resepAir: Int
     var jumlahKain: Int
     var thresholdPh: Double
-    var thresholdKain: Double
+    var thresholdWarna: Double
+    
+    init(proyek: Proyek) {
+        self.pewarna = proyek.pewarna.map {
+            BahanPewarna(jenisPewarna: $0.kode, gramPewarna: $0.gram)
+        }
+        self.zatPembantu = proyek.zatPembantu.map {
+            ZatPembantu(jenisZatPembantu: $0.kode, gramZatPembantu: $0.gram)
+        }
+        self.resepAir = proyek.air
+        self.jumlahKain = proyek.jumlahKain
+        self.thresholdPh = proyek.batasPH
+        self.thresholdWarna = proyek.batasKepekatan
+    }
+    
+    init(resep: Resep, jumlahKain: Int) {
+        self.pewarna = resep.pewarna.map {
+            BahanPewarna(jenisPewarna: $0.kode, gramPewarna: $0.gram)
+        }
+        self.zatPembantu = resep.zatPembantu.map {
+            ZatPembantu(jenisZatPembantu: $0.kode, gramZatPembantu: $0.gram)
+        }
+        self.resepAir = resep.air
+        self.jumlahKain = jumlahKain
+        self.thresholdPh = resep.batasPH
+        self.thresholdWarna = resep.kepekatan
+    }
+    
+    init(
+        pewarna: [BahanPewarna],
+        zatPembantu: [ZatPembantu],
+        resepAir: Int,
+        jumlahKain: Int,
+        thresholdPh: Double,
+        thresholdWarna: Double
+    ) {
+        self.pewarna = pewarna
+        self.zatPembantu = zatPembantu
+        self.resepAir = resepAir
+        self.jumlahKain = jumlahKain
+        self.thresholdPh = thresholdPh
+        self.thresholdWarna = thresholdWarna
+    }
     
     var jumlahAir: Int {
         return resepAir * jumlahKain
@@ -179,7 +221,7 @@ struct Rumus {
         pH1: Double,
         pH2: Double,
         airDitambahkan: Int,
-        resep: Resep
+        resep: ResepKalkulasi
     ) -> PerhitunganSoda? {
         let literAirDitambahkan = Double(airDitambahkan) / 1000.0
         
@@ -219,7 +261,7 @@ struct Rumus {
     static func hitungPenambahanPewarna(
         absorbansi3: Double,
         totalVolumeLiter: Double,
-        resep: Resep,
+        resep: ResepKalkulasi,
         kalibrasi: DataKalibrasi
     ) -> PerhitunganPewarna {
         let cPewarnaSaatIni = hitungKonsentrasiPewarna(absorbansi: absorbansi3, kalibrasi: kalibrasi)

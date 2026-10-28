@@ -39,7 +39,7 @@ class RumusViewModel: ObservableObject {
     private var checkpoint3Absorbansi: Double?
     
     // User Resep State
-    @Published var resep = Resep(
+    @Published var resep = ResepKalkulasi(
         pewarna: [
             BahanPewarna(jenisPewarna: "Merah", gramPewarna: 5.0),
             BahanPewarna(jenisPewarna: "Biru", gramPewarna: 10.0)
@@ -50,7 +50,7 @@ class RumusViewModel: ObservableObject {
         resepAir: 1000,           // 1000 mL per kain
         jumlahKain: 10,           // 10 kain
         thresholdPh: 10.0,        // Batas penurunan pH
-        thresholdKain: 90.0       // Batas penurunan kepekatan warna (%)
+        thresholdWarna: 90.0       // Batas penurunan kepekatan warna (%)
     )
     
     @Published var kalibrasi = DataKalibrasi(slopeA: 0.0)
@@ -107,7 +107,7 @@ class RumusViewModel: ObservableObject {
             currentA: absorbansiSaatIni
         )
         
-        if phSaatIni < resep.thresholdPh || persentaseKepekatan < resep.thresholdKain {
+        if phSaatIni < resep.thresholdPh || persentaseKepekatan < resep.thresholdWarna {
             self.checkpoint1Ph = phSaatIni
             self.checkpoint1Absorbansi = absorbansiSaatIni
             self.statusProses = .thresholdTerlewati(pH1: phSaatIni, absorbansi1: absorbansiSaatIni)
