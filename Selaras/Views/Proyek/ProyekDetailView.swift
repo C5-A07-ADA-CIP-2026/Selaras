@@ -14,6 +14,7 @@ struct ProyekDetailView: View {
     @StateObject private var viewModel: ProyekDetailViewModel
     @Bindable private var proyek: Proyek
     @State private var isShowingDeviceList = false
+    @State private var isShowingQualityAlert = false
 
     init(proyek: Proyek, service: (any ColorMeasurementSource)? = nil) {
         self.proyek = proyek
@@ -66,24 +67,15 @@ struct ProyekDetailView: View {
         } message: { error in
             Text(error)
         }
-        .alert(
-            "Kepekatan Warna Kurang",
-            isPresented: isPresented(
-                viewModel.colorConcentrationWarning,
-                clear: viewModel.clearColorConcentrationWarning
-            )
-        ) {
-            Button("Mengerti", role: .cancel) {}
-        } message: {
-            Text(viewModel.colorConcentrationWarning ?? "")
+        .onChange(of: viewModel.qualityAlert) { _, alert in
+            if alert != nil {
+                tampilkanQualityAlert()
+            }
         }
-        .alert(
-            "pH Air Kurang",
-            isPresented: isPresented(viewModel.waterPHWarning, clear: viewModel.clearWaterPHWarning)
-        ) {
-            Button("Mengerti", role: .cancel) {}
-        } message: {
-            Text(viewModel.waterPHWarning ?? "")
+        .sheet(isPresented: $isShowingQualityAlert, onDismiss: viewModel.clearQualityAlert) {
+            if let alert = viewModel.qualityAlert {
+                QualityAlertSheetView(alert: alert)
+            }
         }
         .alert(
             "Gagal menyimpan proyek",
@@ -109,7 +101,15 @@ struct ProyekDetailView: View {
             PerangkatBaris(nama: proyek.perangkatNama)
 
             VStack(alignment: .leading, spacing: 24) {
-                JudulBagian(teks: "Warna")
+                HStack {
+                    JudulBagian(teks: "Warna")
+                    Spacer()
+                    if isLarutanMenurun {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(Color.peringatan)
+                            .accessibilityLabel("Kualitas larutan menurun")
+                    }
+                }
                 WarnaSwatchView(namaWarna: proyek.namaWarna, warnaHex: proyek.warnaHex)
                 ResepWarnaView(
                     pewarna: proyek.pewarna,
@@ -122,7 +122,7 @@ struct ProyekDetailView: View {
 
             if proyek.status == .nonaktif {
                 hasilAkhir
-            } else if viewModel.isDataScanned {
+            } else if viewModel.isDataScanned, !isMemulai {
                 pengukuran
             }
         }
@@ -132,9 +132,35 @@ struct ProyekDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             JudulBagian(teks: "Pengukuran")
             ForEach(viewModel.measurements.displayedMeasurements) { measurement in
-                BarisInfo(judul: measurement.title, nilai: measurement.value, tebal: measurement.isCurrent)
+                BarisInfo(
+                    judul: measurement.title,
+                    nilai: measurement.value,
+                    tebal: measurement.isCurrent,
+                    peringatan: viewModel.isBelowLimit(measurement)
+                )
+            }
+            if isLarutanMenurun {
+                larutanMenurunBanner
             }
         }
+    }
+
+    private var isLarutanMenurun: Bool {
+        !isMemulai && (viewModel.isConcentrationLow || viewModel.isWaterPHLow)
+    }
+
+    private var larutanMenurunBanner: some View {
+        HStack {
+            Text("Kualitas Larutan Menurun")
+            Spacer()
+            Image(systemName: "exclamationmark.circle.fill")
+        }
+        .font(.headline)
+        .foregroundStyle(.white)
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(Color.latarPeringatan, in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityElement(children: .combine)
     }
 
     private var hasilAkhir: some View {
@@ -155,6 +181,18 @@ struct ProyekDetailView: View {
                 tebal: true
             )
             BarisInfo(judul: "Batas pH", nilai: ProyekColorMeasurements.format(proyek.batasPH))
+        }
+    }
+
+    /// Shows the sheet as soon as the loading is gone and the readings are on screen.
+    private func tampilkanQualityAlert() {
+        Task {
+            while isMemulai {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            if viewModel.qualityAlert != nil {
+                isShowingQualityAlert = true
+            }
         }
     }
 
@@ -207,9 +245,9 @@ struct ProyekDetailView: View {
         viewModel.isDataScanned ? "Selesaikan Proyek" : "Mulai Pindai"
     }
 
-    private func isPresented(_ message: String?, clear: @escaping () -> Void) -> Binding<Bool> {
+    private func isPresented(_ value: (some Any)?, clear: @escaping () -> Void) -> Binding<Bool> {
         Binding(
-            get: { message != nil },
+            get: { value != nil },
             set: { isPresented in
                 if !isPresented {
                     DispatchQueue.main.async { clear() }
@@ -261,5 +299,53 @@ struct ProyekDetailView: View {
     proyek.selesaikan(kepekatanAkhir: 94.04, phAkhir: 9)
     return NavigationStack {
         ProyekDetailView(proyek: proyek, service: SimulatedDeviceConnectionService())
+    }
+}
+
+/// Reads full color and pH 12 at first, then `reading`, to try the quality alert.
+private struct LowReadingPreviewSource: ColorMeasurementSource {
+    let reading: ColorMeasurement
+
+    func readInitialColorMeasurement() async throws -> ColorMeasurement {
+        ColorMeasurement(visibleAverage: 1000, clear: 1000, nir: 100, waterPH: 12)
+    }
+
+    func measurementUpdates() -> AsyncStream<ColorMeasurement> {
+        AsyncStream { continuation in
+            continuation.yield(reading)
+        }
+    }
+}
+
+#Preview("Kepekatan saja di bawah batas") {
+    NavigationStack {
+        ProyekDetailView(
+            proyek: .previewSample,
+            service: LowReadingPreviewSource(
+                reading: ColorMeasurement(visibleAverage: 500, clear: 1000, nir: 100, waterPH: 12)
+            )
+        )
+    }
+}
+
+#Preview("pH saja di bawah batas") {
+    NavigationStack {
+        ProyekDetailView(
+            proyek: .previewSample,
+            service: LowReadingPreviewSource(
+                reading: ColorMeasurement(visibleAverage: 1000, clear: 1000, nir: 100, waterPH: 1)
+            )
+        )
+    }
+}
+
+#Preview("Kepekatan dan pH di bawah batas") {
+    NavigationStack {
+        ProyekDetailView(
+            proyek: .previewSample,
+            service: LowReadingPreviewSource(
+                reading: ColorMeasurement(visibleAverage: 500, clear: 1000, nir: 100, waterPH: 1)
+            )
+        )
     }
 }

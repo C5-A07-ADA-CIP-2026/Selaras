@@ -8,6 +8,14 @@
 import SwiftUI
 
 extension Color {
+    /// Merah peringatan untuk teks (kontras >= 4.5:1 di mode terang dan gelap).
+    static let peringatan = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark ? .systemRed : UIColor(red: 0.77, green: 0.125, blue: 0.11, alpha: 1)
+    })
+
+    /// Latar merah untuk banner dengan teks putih (kontras >= 4.5:1 di semua mode).
+    static let latarPeringatan = Color(red: 0.77, green: 0.125, blue: 0.11)
+
     init(hex: String) {
         let scanner = Scanner(string: hex)
         _ = scanner.scanString("#")

@@ -12,6 +12,7 @@ struct BarisInfo: View {
     let judul: String
     let nilai: String
     var tebal = false
+    var peringatan = false
 
     var body: some View {
         let layout = dynamicTypeSize.isAccessibilitySize
@@ -28,6 +29,7 @@ struct BarisInfo: View {
                 .monospacedDigit()
         }
         .fontWeight(tebal ? .semibold : .regular)
+        .foregroundStyle(peringatan ? Color.peringatan : Color.primary)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
