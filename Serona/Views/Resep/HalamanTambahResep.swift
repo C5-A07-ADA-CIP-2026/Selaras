@@ -36,7 +36,7 @@ struct HalamanTambahResep: View {
                 bagianBahan
                 bagianBatas
             }
-            .padding(15)
+            .padding(24)
         }
         .navigationTitle(viewModel.sedangMengedit ? viewModel.namaWarna : "Tambah Warna")
         .navigationBarTitleDisplayMode(.inline)
@@ -67,12 +67,12 @@ struct HalamanTambahResep: View {
                 pilihanTersedia: viewModel.daftarPilihanPewarna
             )
 
-            BarisIsian(label: "Air", satuan: "ml", labelTebal: true) {
+            BarisIsian(label: "Air", satuan: "L", labelTebal: true) {
                 TextField("0", value: $viewModel.ukuranAir, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.center)
-                    .frame(width: 70)
+                    .frame(width: UkuranKolom.lebarAngka)
             }
 
             DaftarBahan(
@@ -90,14 +90,12 @@ struct HalamanTambahResep: View {
                 .font(.judulBold)
 
             BarisBatas(
-                label: "Kepekatan Warna",
-                satuan: "%",
+                label: "Kepekatan Warna (%)",
                 nilai: $viewModel.kepekatan,
                 rentang: 0 ... 100
             )
             BarisBatas(
                 label: "Batas pH",
-                satuan: "pH",
                 nilai: $viewModel.batasPH,
                 rentang: 0 ... 14
             )
