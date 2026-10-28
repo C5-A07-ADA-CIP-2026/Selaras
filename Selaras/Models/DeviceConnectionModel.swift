@@ -79,6 +79,8 @@ protocol DeviceConnecting: Sendable {
     func scanDevices() -> AsyncThrowingStream<DiscoveredDevice, any Error>
     /// Connects to `device`. Cancelling the calling task abandons the attempt with `CancellationError`.
     func connect(to device: DiscoveredDevice) async throws
+    /// Drops the connection to `device`.
+    func disconnect(from device: DiscoveredDevice) async
 }
 
 /// Reads color measurements from a connected device. This is all `ProyekViewModel` needs.
@@ -91,11 +93,12 @@ protocol ColorMeasurementSource: Sendable {
 protocol DeviceConnectionService: DeviceConnecting, ColorMeasurementSource, Sendable {}
 
 struct SimulatedDeviceConnectionService: DeviceConnectionService {
-    static let devices = [
-        DiscoveredDevice(id: UUID(uuidString: "00000000-0000-0000-0000-0000000000E1")!, nama: "ESP 32"),
-        DiscoveredDevice(id: UUID(uuidString: "00000000-0000-0000-0000-0000000000E2")!, nama: "ESP 32-B"),
-        DiscoveredDevice(id: UUID(uuidString: "00000000-0000-0000-0000-0000000000E3")!, nama: "ESP 32-C"),
-    ]
+    static let devices = ["A", "B", "C", "D", "E", "F"].enumerated().map { index, letter in
+        DiscoveredDevice(
+            id: UUID(uuidString: "00000000-0000-0000-0000-0000000000E\(index + 1)")!,
+            nama: "ESP 32 - \(letter)"
+        )
+    }
 
     let discoveryDelay: Duration
     let connectionDelay: Duration
@@ -130,6 +133,10 @@ struct SimulatedDeviceConnectionService: DeviceConnectionService {
         print("[Simulator] ⏳ Mensimulasikan koneksi ke \(device.nama)...")
         try await Task.sleep(for: connectionDelay)
         print("[Simulator] ✅ Perangkat simulasi \(device.nama) terhubung.")
+    }
+
+    func disconnect(from device: DiscoveredDevice) async {
+        print("[Simulator] 🔌 Perangkat simulasi \(device.nama) diputus.")
     }
 
     func readInitialColorMeasurement() async throws -> ColorMeasurement {

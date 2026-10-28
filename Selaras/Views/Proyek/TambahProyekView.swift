@@ -10,10 +10,14 @@ import SwiftUI
 struct TambahProyekView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @State private var viewModel = TambahProyekViewModel()
+    @State private var viewModel: TambahProyekViewModel
     @State private var isShowingDeviceList = false
     @State private var isShowingPilihResep = false
     @FocusState private var isNamaFocused: Bool
+
+    init(viewModel: TambahProyekViewModel = TambahProyekViewModel()) {
+        _viewModel = State(wrappedValue: viewModel)
+    }
 
     var body: some View {
         NavigationStack {
@@ -51,7 +55,10 @@ struct TambahProyekView: View {
             }
         }
         .sheet(isPresented: $isShowingDeviceList) {
-            DeviceListSheetView { viewModel.pilihPerangkat($0) }
+            DeviceListSheetView(
+                onConnected: { viewModel.pilihPerangkat($0) },
+                onDisconnected: { _ in Task { await viewModel.hapusPerangkat() } }
+            )
         }
         .sheet(isPresented: $isShowingPilihResep) {
             PilihResepSheetView { viewModel.pilihResep($0) }
@@ -84,9 +91,23 @@ struct TambahProyekView: View {
             JudulBagian(teks: "Perangkat")
 
             if let perangkat = viewModel.perangkat {
-                Text(perangkat.nama)
-                    .font(.headline)
-                    .foregroundStyle(.blue)
+                HStack {
+                    Label(perangkat.nama, systemImage: "wifi")
+                        .font(.headline)
+                        .foregroundStyle(.blue)
+
+                    Spacer()
+
+                    Button {
+                        Task { await viewModel.hapusPerangkat() }
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Putuskan \(perangkat.nama)")
+                }
             }
 
             Button {
@@ -135,18 +156,11 @@ struct TambahProyekView: View {
 }
 
 #Preview {
-    Color.clear
+    let viewModel = TambahProyekViewModel(service: SimulatedDeviceConnectionService())
+    viewModel.pilihPerangkat(SimulatedDeviceConnectionService.devices[0])
+    return Color.clear
         .sheet(isPresented: .constant(true)) {
-            TambahProyekView()
+            TambahProyekView(viewModel: viewModel)
         }
         .modelContainer(for: SelarasSchema.models, inMemory: true)
-}
-
-#Preview("Accessibility 5") {
-    Color.clear
-        .sheet(isPresented: .constant(true)) {
-            TambahProyekView()
-        }
-        .modelContainer(for: SelarasSchema.models, inMemory: true)
-        .dynamicTypeSize(.accessibility5)
 }

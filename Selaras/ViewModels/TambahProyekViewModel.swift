@@ -16,6 +16,11 @@ final class TambahProyekViewModel {
     private(set) var resep: Resep?
     private(set) var saveError: String?
     private var isSaved = false
+    private let service: any DeviceConnecting
+
+    init(service: (any DeviceConnecting)? = nil) {
+        self.service = service ?? DeviceConnectionServices.default
+    }
 
     var canSubmit: Bool {
         nama.tidakKosong && perangkat != nil && resep != nil && jumlahKain > 0
@@ -23,6 +28,13 @@ final class TambahProyekViewModel {
 
     func pilihPerangkat(_ perangkat: DiscoveredDevice) {
         self.perangkat = perangkat
+    }
+
+    /// Clears the chosen device and drops its connection.
+    func hapusPerangkat() async {
+        guard let perangkat else { return }
+        self.perangkat = nil
+        await service.disconnect(from: perangkat)
     }
 
     func pilihResep(_ resep: Resep) {

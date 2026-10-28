@@ -36,6 +36,22 @@ struct TambahProyekViewModelTests {
         #expect(makeCompleteViewModel().canSubmit)
     }
 
+    @Test("Removing the device blocks submitting")
+    func hapusPerangkatBlocksSubmit() async {
+        let service = StubDeviceConnectionService()
+        let viewModel = TambahProyekViewModel(service: service)
+        viewModel.nama = "Seragam RT 5"
+        viewModel.pilihPerangkat(esp)
+        viewModel.pilihResep(.sample(namaWarna: "Merah Marun", warnaHex: "#B50202", batasKepekatan: 90, batasPH: 7.5))
+        viewModel.jumlahKain = 2
+
+        await viewModel.hapusPerangkat()
+
+        #expect(viewModel.perangkat == nil)
+        #expect(!viewModel.canSubmit)
+        #expect(service.disconnectCounter.value == 1)
+    }
+
     @Test("Each missing field blocks submitting")
     func missingFieldBlocksSubmit() {
         let noName = makeCompleteViewModel()

@@ -22,6 +22,8 @@ private struct ConnectingOnlyService: DeviceConnecting {
     }
 
     func connect(to _: DiscoveredDevice) async throws {}
+
+    func disconnect(from _: DiscoveredDevice) async {}
 }
 
 /// Conforms only to `ColorMeasurementSource`: it cannot connect.

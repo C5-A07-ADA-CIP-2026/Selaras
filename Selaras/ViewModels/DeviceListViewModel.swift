@@ -89,6 +89,13 @@ final class DeviceListViewModel {
         connectingDevice = nil
     }
 
+    /// Drops the connection to the connected device. It stays in `devices`, so it can be connected again.
+    func disconnect() async {
+        guard let device = connectedDevice else { return }
+        await service.disconnect(from: device)
+        connectedDevice = nil
+    }
+
     func cancelConnecting() {
         connectionTask?.cancel()
     }
